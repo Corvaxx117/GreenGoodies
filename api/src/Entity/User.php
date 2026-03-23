@@ -15,6 +15,9 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * Représente un compte applicatif pouvant acheter, créer des produits et activer un accès API commerçant.
+ */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'users')]
 #[ORM\HasLifecycleCallbacks]
@@ -194,6 +197,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function enableApiAccess(): self
     {
+        // Ce flag complète l'existence de la clé pour autoriser réellement l'accès API commerçant.
         $this->apiAccessEnabled = true;
         $this->touch();
 
@@ -215,6 +219,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function acceptTerms(?\DateTimeImmutable $acceptedAt = null): self
     {
+        // La date d'acceptation des CGU est conservée à titre de preuve fonctionnelle.
         $this->termsAcceptedAt = $acceptedAt ?? new \DateTimeImmutable();
         $this->touch();
 
@@ -228,6 +233,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function attachApiKey(ApiKey $apiKey): self
     {
+        // La relation bidirectionnelle est synchronisée des deux côtés.
         $this->apiKey = $apiKey;
 
         if ($apiKey->getUser() !== $this) {
@@ -257,6 +263,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function addProduct(Product $product): self
     {
+        // Le vendeur devient la source de vérité du rattachement produit <-> utilisateur.
         if (!$this->products->contains($product)) {
             $this->products->add($product);
         }
@@ -299,6 +306,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     private function normalizeRoles(array $roles): array
     {
+        // ROLE_USER est toujours forcé pour conserver un socle minimum d'autorisations.
         $roles[] = 'ROLE_USER';
 
         $roles = array_map(

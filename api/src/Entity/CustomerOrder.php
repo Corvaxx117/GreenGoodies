@@ -12,6 +12,9 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * Représente à la fois un panier actif et une commande validée selon son statut.
+ */
 #[ORM\Entity(repositoryClass: CustomerOrderRepository::class)]
 #[ORM\Table(name: 'customer_orders', indexes: [new ORM\Index(name: 'idx_customer_order_status', columns: ['status'])])]
 #[ORM\HasLifecycleCallbacks]
@@ -92,15 +95,26 @@ class CustomerOrder
         return $this->items;
     }
 
-    public function addItem(Product $product, int $quantity): self
+    public function findItemForProduct(Product $product): ?OrderItem
     {
+        // Cette recherche évite de dupliquer une ligne pour un produit déjà présent dans le panier.
         foreach ($this->items as $item) {
             if ($item->matchesProduct($product)) {
-                $item->changeQuantity($quantity);
-                $this->recalculateTotal();
-
-                return $this;
+                return $item;
             }
+        }
+
+        return null;
+    }
+
+    public function addItem(Product $product, int $quantity): self
+    {
+        // L'ajout fusionne les quantités lorsque le produit existe déjà dans la commande.
+        if (($item = $this->findItemForProduct($product)) instanceof OrderItem) {
+            $item->changeQuantity($quantity);
+            $this->recalculateTotal();
+
+            return $this;
         }
 
         $this->items->add(new OrderItem($this, $product, $quantity));
@@ -119,10 +133,12 @@ class CustomerOrder
 
     public function validate(): self
     {
+        // Une commande vide ne peut pas franchir l'étape de validation.
         if ($this->items->isEmpty()) {
             throw new \DomainException('Une commande vide ne peut pas être validée.');
         }
 
+        // La validation fige la date métier de confirmation.
         $this->status = OrderStatus::Validated;
         $this->validatedAt = new \DateTimeImmutable();
         $this->recalculateTotal();
@@ -140,6 +156,7 @@ class CustomerOrder
 
     public function recalculateTotal(): void
     {
+        // Le total est toujours recalculé à partir des lignes pour éviter tout écart de synchronisation.
         $this->totalCents = array_reduce(
             $this->items->toArray(),
             static fn (int $total, OrderItem $item): int => $total + $item->getLineTotalCents(),
@@ -151,6 +168,7 @@ class CustomerOrder
 
     private static function generateReference(): string
     {
+        // La référence métier permet d'identifier clairement une commande côté front et dans les échanges.
         return sprintf('GG-%s', strtoupper(bin2hex(random_bytes(6))));
     }
 }

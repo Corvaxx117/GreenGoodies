@@ -9,6 +9,8 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
+ * Repository Doctrine du référentiel de marques.
+ *
  * @extends ServiceEntityRepository<Brand>
  */
 final class BrandRepository extends ServiceEntityRepository

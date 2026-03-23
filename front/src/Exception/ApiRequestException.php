@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Exception;
 
+/**
+ * Encapsule une erreur métier ou technique rencontrée lors d'un appel HTTP vers l'API.
+ */
 final class ApiRequestException extends \RuntimeException
 {
     /**

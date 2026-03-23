@@ -10,6 +10,8 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
+ * Fournit les requêtes ciblées sur les catalogues public et commerçant.
+ *
  * @extends ServiceEntityRepository<Product>
  */
 final class ProductRepository extends ServiceEntityRepository
@@ -25,6 +27,7 @@ final class ProductRepository extends ServiceEntityRepository
     public function findPublishedCatalog(int $limit = 12): array
     {
         /** @var list<Product> $products */
+        // Le catalogue public n'expose que les produits publiés.
         $products = $this->createQueryBuilder('product')
             ->andWhere('product.isPublished = :published')
             ->setParameter('published', true)
@@ -38,6 +41,7 @@ final class ProductRepository extends ServiceEntityRepository
 
     public function findOnePublishedBySlug(string $slug): ?Product
     {
+        // Les fiches produit du front sont accessibles par slug public uniquement.
         return $this->createQueryBuilder('product')
             ->andWhere('product.slug = :slug')
             ->andWhere('product.isPublished = :published')
@@ -53,6 +57,7 @@ final class ProductRepository extends ServiceEntityRepository
     public function findPublishedBySeller(User $seller): array
     {
         /** @var list<Product> $products */
+        // La route commerçant filtre les produits sur leur propriétaire métier.
         $products = $this->createQueryBuilder('product')
             ->andWhere('product.seller = :seller')
             ->andWhere('product.isPublished = :published')

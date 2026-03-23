@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon panier | GreenGoodies{% endblock %}
+
+{% block body %}
+    <section class="dashboard-page">
+        <div class="dashboard-page__inner dashboard-page__inner--cart">
+            <header class="dashboard-page__header">
+                <h1 class="dashboard-page__title">Mon panier</h1>
+
+                {% if not cart.isEmpty %}
+                    <form method="post" action="{{ path('front_cart_clear') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('front_cart_clear') }}">
+                        <button class="dashboard-page__link-button" type="submit">x Vider le panier</button>
+                    </form>
+                {% endif %}
+            </header>
+
+            <div class="cart-panel">
+                {% if cart.isEmpty %}
+                    <div class="cart-empty">
+                        <p class="cart-empty__title">Votre panier est vide.</p>
+                        <p class="cart-empty__copy">Ajoutez un produit depuis le catalogue pour commencer une commande.</p>
+                        <a class="cart-empty__link" href="{{ path('front_home') }}#products">Voir les produits</a>
+                    </div>
+                {% else %}
+                    <div class="cart-items">
+                        {% for item in cart.items %}
+                            <article class="cart-item">
+                                <div class="cart-item__media">
+                                    {% if item.imagePath %}
+                                        <img src="{{ asset(item.imagePath) }}" alt="{{ item.name }}" width="146" height="146" loading="lazy">
+                                    {% endif %}
+                                </div>
+
+                                <div class="cart-item__content">
+                                    <h2 class="cart-item__title">{{ item.name }}</h2>
+                                    <p class="cart-item__meta">Quantité : {{ item.quantity }}</p>
+                                    <p class="cart-item__price">
+                                        {% if item.lineTotalCents is divisible by(100) %}
+                                            {{ (item.lineTotalCents / 100)|number_format(0, ',', ' ') }}€
+                                        {% else %}
+                                            {{ (item.lineTotalCents / 100)|number_format(2, ',', ' ') }}€
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+
+                    <div class="cart-summary">
+                        <p class="cart-summary__total">
+                            Total panier :
+                            <strong>
+                                {% if cart.totalCents is divisible by(100) %}
+                                    {{ (cart.totalCents / 100)|number_format(0, ',', ' ') }}€
+                                {% else %}
+                                    {{ (cart.totalCents / 100)|number_format(2, ',', ' ') }}€
+                                {% endif %}
+                            </strong>
+                        </p>
+                        <p class="cart-summary__delivery">Frais de livraison : {{ cart.deliveryLabel }}</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if not cart.isEmpty %}
+                <form method="post" action="{{ path('front_cart_checkout') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('front_cart_checkout') }}">
+                    <button class="dashboard-page__primary-button" type="submit">Valider la commande</button>
+                </form>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

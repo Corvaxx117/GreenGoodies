@@ -9,6 +9,9 @@ use App\Repository\ApiKeyRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * Stocke la clé API commerçant sous forme hachée, avec un préfixe lisible et un état d'activation.
+ */
 #[ORM\Entity(repositoryClass: ApiKeyRepository::class)]
 #[ORM\Table(name: 'api_keys')]
 #[ORM\HasLifecycleCallbacks]
@@ -100,6 +103,7 @@ class ApiKey
 
     public function rotate(string $plainTextKey, bool $enabled = true): self
     {
+        // La clé complète n'est jamais conservée ; seul un préfixe et un hash persistent.
         $normalizedKey = trim($plainTextKey);
 
         $this->keyPrefix = strtoupper(substr($normalizedKey, 0, 16));
@@ -112,6 +116,7 @@ class ApiKey
 
     public function matches(string $plainTextKey): bool
     {
+        // La comparaison se fait via hash_equals pour éviter les écarts de timing.
         return hash_equals($this->hashedKey, hash('sha256', trim($plainTextKey)));
     }
 
@@ -122,6 +127,7 @@ class ApiKey
 
     public function markAsUsed(): self
     {
+        // La dernière utilisation permet de suivre l'activité des intégrations partenaires.
         $this->lastUsedAt = new \DateTimeImmutable();
         $this->touch();
 

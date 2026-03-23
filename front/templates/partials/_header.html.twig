@@ -8,8 +8,8 @@
             <a class="site-nav__link" href="{{ path('front_home') }}#products">Nos produits</a>
 
             {% if app.user %}
-                <a class="site-nav__link" href="{{ path('front_product_new') }}">Ajouter un produit</a>
-                <a class="site-nav__link" href="#">Mon compte</a>
+                <a class="site-nav__link" href="{{ path('front_cart_show') }}">Mon panier</a>
+                <a class="site-nav__link" href="{{ path('front_account_show') }}">Mon compte</a>
                 <a class="site-nav__link" href="{{ path('front_logout') }}">Déconnexion</a>
             {% else %}
                 <a class="site-nav__link" href="{{ path('front_login') }}">Connexion</a>

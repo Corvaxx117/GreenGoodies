@@ -13,6 +13,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+/**
+ * Gère le scénario d'inscription en déléguant la création du compte à l'API.
+ */
 final class RegistrationController extends AbstractController
 {
     #[Route('/inscription', name: 'front_register', methods: ['GET', 'POST'])]
@@ -25,6 +28,7 @@ final class RegistrationController extends AbstractController
             $data = $form->getData();
 
             try {
+                // Le front transmet uniquement les données validées du formulaire à la route API dédiée.
                 $apiClient->register([
                     'firstName' => $data['firstName'],
                     'lastName' => $data['lastName'],

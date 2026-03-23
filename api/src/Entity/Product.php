@@ -21,6 +21,9 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * Représente un produit du catalogue public et du catalogue commerçant.
+ */
 #[ApiResource(
     operations: [
         new Get(
@@ -147,6 +150,7 @@ class Product
 
     public function assignSeller(?User $seller): self
     {
+        // Le rattachement vendeur sert à la fois au front et à la route commerçant filtrée par clé API.
         $this->seller = $seller;
 
         if ($seller !== null && !$seller->getProducts()->contains($this)) {
@@ -170,6 +174,7 @@ class Product
 
     public function changeBrand(Brand $brand): self
     {
+        // La marque est obligatoire sur chaque produit pour répondre au besoin de référencement.
         $this->brand = $brand;
         $this->touch();
 
@@ -267,7 +272,14 @@ class Product
 
     public function changeImagePath(string $imagePath): self
     {
-        $this->imagePath = trim($imagePath);
+        $normalizedImagePath = trim($imagePath);
+
+        // Les chemins d'assets publics sont normalisés avec un slash initial pour être exploitables côté front.
+        if ($normalizedImagePath !== '' && str_starts_with($normalizedImagePath, 'assets/')) {
+            $normalizedImagePath = sprintf('/%s', $normalizedImagePath);
+        }
+
+        $this->imagePath = $normalizedImagePath;
         $this->touch();
 
         return $this;
@@ -285,6 +297,7 @@ class Product
 
     public function publish(): self
     {
+        // Le flag de publication pilote la visibilité dans les catalogues publics et commerçants.
         $this->isPublished = true;
         $this->touch();
 

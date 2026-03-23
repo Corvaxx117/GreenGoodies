@@ -11,6 +11,8 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
+ * Fournit les requêtes de lecture dédiées au panier et à l'historique de commandes.
+ *
  * @extends ServiceEntityRepository<CustomerOrder>
  */
 final class CustomerOrderRepository extends ServiceEntityRepository
@@ -26,6 +28,7 @@ final class CustomerOrderRepository extends ServiceEntityRepository
     public function findLatestValidatedForUser(User $user, int $limit = 10): array
     {
         /** @var list<CustomerOrder> $orders */
+        // Le compte utilisateur affiche uniquement les commandes déjà validées, triées par date décroissante.
         $orders = $this->createQueryBuilder('customerOrder')
             ->andWhere('customerOrder.user = :user')
             ->andWhere('customerOrder.status = :status')
@@ -37,5 +40,23 @@ final class CustomerOrderRepository extends ServiceEntityRepository
             ->getResult();
 
         return $orders;
+    }
+
+    public function findDraftForUser(User $user): ?CustomerOrder
+    {
+        // Le panier courant correspond à la commande brouillon la plus récente de l'utilisateur.
+        return $this->createQueryBuilder('customerOrder')
+            ->leftJoin('customerOrder.items', 'items')
+            ->addSelect('items')
+            ->leftJoin('items.product', 'product')
+            ->addSelect('product')
+            ->andWhere('customerOrder.user = :user')
+            ->andWhere('customerOrder.status = :status')
+            ->setParameter('user', $user)
+            ->setParameter('status', OrderStatus::Draft)
+            ->orderBy('customerOrder.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }

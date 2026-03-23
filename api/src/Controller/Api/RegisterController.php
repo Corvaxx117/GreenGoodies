@@ -14,6 +14,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+/**
+ * Expose la route d'inscription utilisée par le front pour créer un compte client.
+ */
 final readonly class RegisterController
 {
     public function __construct(
@@ -27,6 +30,7 @@ final readonly class RegisterController
     #[Route('/api/register', name: 'api_register', methods: ['POST'])]
     public function __invoke(Request $request): JsonResponse
     {
+        // Le contrôleur valide d'abord le payload brut avant toute création d'entité.
         $payload = $request->toArray();
 
         $violations = $this->validator->validate($payload, new Assert\Collection([
@@ -44,6 +48,7 @@ final readonly class RegisterController
             ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        // L'unicité de l'email est vérifiée explicitement pour produire une réponse métier claire.
         if ($this->userRepository->findOneBy(['email' => mb_strtolower((string) $payload['email'])]) !== null) {
             return new JsonResponse([
                 'message' => 'Cette adresse email est déjà utilisée.',
@@ -60,6 +65,7 @@ final readonly class RegisterController
             ->acceptTerms()
             ->setPassword($this->passwordHasher->hashPassword($user, (string) $payload['password']));
 
+        // L'utilisateur est persisté uniquement après le hashage du mot de passe.
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 

@@ -17,6 +17,9 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * Représente une marque rattachable à un produit et exposée en lecture par l'API.
+ */
 #[ApiResource(
     operations: [
         new Get(normalizationContext: ['groups' => ['brand:read']]),
@@ -69,6 +72,7 @@ class Brand
 
     public function rename(string $name): self
     {
+        // Le renommage garde une normalisation simple par trimming.
         $this->name = trim($name);
         $this->touch();
 
