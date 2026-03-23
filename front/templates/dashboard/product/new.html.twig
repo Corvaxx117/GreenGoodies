@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau produit | GreenGoodies{% endblock %}
+
+{% block body %}
+    <section class="auth-layout auth-layout--product">
+        <div class="auth-layout__media">
+            <img src="{{ asset('assets/images/home/hero-optimized.jpg') }}" alt="Univers GreenGoodies." width="560" height="566">
+        </div>
+
+        <div class="auth-layout__content">
+            <div class="auth-card auth-card--wide">
+                <h1 class="auth-card__title">Ajouter un produit</h1>
+                <p class="auth-card__intro">Le formulaire front enverra les données à l’API REST pour la persistance.</p>
+
+                {{ form_start(productForm, { attr: { class: 'auth-form auth-form--product' } }) }}
+                    {{ form_row(productForm.brand, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(productForm.name, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(productForm.slug, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(productForm.shortDescription, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(productForm.description, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(productForm.priceCents, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(productForm.imagePath, { row_attr: { class: 'form-row' } }) }}
+                    <button class="form-submit" type="submit">Publier le produit</button>
+                {{ form_end(productForm) }}
+            </div>
+        </div>
+    </section>
+{% endblock %}

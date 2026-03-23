@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}GreenGoodies | Accueil{% endblock %}
+
+{% block body %}
+    <section class="hero" aria-labelledby="hero-title">
+        <div class="hero__content">
+            <h1 class="hero__title" id="hero-title">Bienvenue</h1>
+            <p class="hero__lead">
+                Découvrez notre univers de produits durables et éthiques pour une consommation responsable
+            </p>
+            <p class="hero__copy">
+                Retrouvez des articles d’hygiène & beauté, des accessoires & boissons et du prêt à porter
+            </p>
+        </div>
+
+        <div class="hero__media">
+            <img src="{{ asset('assets/images/home/hero-optimized.jpg') }}" alt="Décoration intérieure engagée." width="560" height="566" loading="eager" fetchpriority="high">
+        </div>
+    </section>
+
+    <section class="products-section" id="products" aria-labelledby="products-title">
+        <div class="section-heading shell">
+            <p class="section-heading__label" id="products-title">Nos produits</p>
+        </div>
+
+        <div class="products-grid">
+            {% for product in products %}
+                <article class="product-card">
+                    <div class="product-card__media">
+                        <img src="{{ asset(product.imagePath) }}" alt="{{ product.name }}" width="365" height="360" loading="lazy">
+                    </div>
+
+                    <div class="product-card__content">
+                        <h2 class="product-card__title">{{ product.name }}</h2>
+                        <p class="product-card__description">{{ product.shortDescription }}</p>
+                        <p class="product-card__description product-card__brand">{{ product.brand.name }}</p>
+                        <p class="product-card__price">
+                            {% if product.priceCents is divisible by(100) %}
+                                {{ (product.priceCents / 100)|number_format(0, ',', ' ') }}€
+                            {% else %}
+                                {{ (product.priceCents / 100)|number_format(2, ',', ' ') }}€
+                            {% endif %}
+                        </p>
+                        <a class="product-card__link" href="{{ path('front_product_show', { slug: product.slug }) }}">Voir le produit</a>
+                    </div>
+                </article>
+            {% else %}
+                <p class="catalog-empty shell">Aucun produit n’est disponible pour le moment.</p>
+            {% endfor %}
+        </div>
+    </section>
+{% endblock %}

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}GreenGoodies{% endblock %}</title>
+        <link rel="icon" type="image/svg+xml" href="{{ asset('assets/images/logo.svg') }}">
+        <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+    </head>
+    <body class="{% block body_class %}site{% endblock %}">
+        {% include 'partials/_header.html.twig' %}
+        <main class="site__main">
+            {% include 'partials/_flashes.html.twig' %}
+            {% block body %}{% endblock %}
+        </main>
+        {% include 'partials/_footer.html.twig' %}
+    </body>
+</html>

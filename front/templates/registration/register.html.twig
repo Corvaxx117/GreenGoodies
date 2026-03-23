@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscription | GreenGoodies{% endblock %}
+
+{% block body %}
+    <section class="auth-layout">
+        <div class="auth-layout__media">
+            <img src="{{ asset('assets/images/home/values.jpg') }}" alt="Feuillage dense et organique." width="370" height="375">
+        </div>
+
+        <div class="auth-layout__content">
+            <div class="auth-card">
+                <h1 class="auth-card__title">Inscription</h1>
+                <p class="auth-card__intro">Tous les champs sont obligatoires.</p>
+
+                {{ form_start(registrationForm, { attr: { class: 'auth-form' } }) }}
+                    {{ form_row(registrationForm.lastName, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(registrationForm.firstName, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(registrationForm.email, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(registrationForm.password.first, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(registrationForm.password.second, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(registrationForm.acceptTerms, { row_attr: { class: 'form-row form-row--checkbox' } }) }}
+                    <button class="form-submit" type="submit">S’inscrire</button>
+                {{ form_end(registrationForm) }}
+
+                <p class="auth-card__switch">
+                    <a href="{{ path('front_login') }}">Déjà un compte ? Se connecter</a>
+                </p>
+            </div>
+        </div>
+    </section>
+{% endblock %}

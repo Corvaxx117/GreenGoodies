@@ -1,0 +1,22 @@
+api_platform:
+    title: GreenGoodies API
+    version: 1.0.0
+    enable_docs: true
+    enable_entrypoint: true
+    enable_swagger: true
+    enable_swagger_ui: true
+    enable_re_doc: false
+    formats:
+        jsonld: ['application/ld+json']
+        json: ['application/json']
+    docs_formats:
+        jsonld: ['application/ld+json']
+        jsonopenapi: ['application/vnd.openapi+json']
+        html: ['text/html']
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+    mapping:
+        paths:
+            - '%kernel.project_dir%/src/Entity'
