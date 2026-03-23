@@ -11,6 +11,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/**
+ * Désactive l'accès API commerçant du compte courant.
+ */
 final readonly class DeactivateApiKeyController
 {
     public function __construct(
@@ -22,6 +25,7 @@ final readonly class DeactivateApiKeyController
     #[IsGranted('ROLE_USER')]
     public function __invoke(#[CurrentUser] User $user): JsonResponse
     {
+        // Le compte et la clé doivent être désactivés de concert pour fermer complètement l'accès.
         $user->disableApiAccess();
 
         if ($user->getApiKey() !== null) {

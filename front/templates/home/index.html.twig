@@ -46,7 +46,9 @@
                     </div>
                 </article>
             {% else %}
-                <p class="catalog-empty shell">Aucun produit n’est disponible pour le moment.</p>
+                <p class="catalog-empty shell">
+                    {{ catalogUnavailable ? 'Le catalogue est temporairement indisponible. Merci de réessayer plus tard.' : 'Aucun produit n’est disponible pour le moment.' }}
+                </p>
             {% endfor %}
         </div>
     </section>

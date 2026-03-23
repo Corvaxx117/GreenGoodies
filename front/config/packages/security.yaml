@@ -19,3 +19,5 @@ security:
 
     access_control:
         - { path: ^/mes-produits/nouveau, roles: ROLE_USER }
+        - { path: ^/mon-panier, roles: ROLE_USER }
+        - { path: ^/mon-compte, roles: ROLE_USER }

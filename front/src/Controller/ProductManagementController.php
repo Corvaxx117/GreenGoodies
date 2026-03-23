@@ -15,14 +15,26 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/**
+ * Expose côté front le formulaire d'ajout de produit, puis délègue la persistance à l'API.
+ */
 final class ProductManagementController extends AbstractController
 {
     #[Route('/mes-produits/nouveau', name: 'front_product_new', methods: ['GET', 'POST'])]
     #[IsGranted('ROLE_USER')]
     public function new(Request $request, GreenGoodiesApiClient $apiClient, FormFactoryInterface $formFactory): Response
     {
+        try {
+            // Les choix de marques proviennent du référentiel API pour garder le front sans données locales.
+            $brands = $apiClient->listBrands();
+        } catch (ApiRequestException $exception) {
+            $this->addFlash('error', $exception->getMessage());
+
+            return $this->redirectToRoute('front_home');
+        }
+
         $form = $formFactory->createNamed('', ProductFormType::class, null, [
-            'brands' => $apiClient->listBrands(),
+            'brands' => $brands,
         ]);
         $form->handleRequest($request);
 
@@ -30,6 +42,7 @@ final class ProductManagementController extends AbstractController
             $jwt = (string) $request->getSession()->get(ApiLoginAuthenticator::SESSION_JWT_KEY, '');
 
             if ($jwt === '') {
+                // Sans JWT conservé en session, le front ne peut pas persister un produit côté API.
                 $this->addFlash('error', 'Votre session a expiré. Merci de vous reconnecter.');
 
                 return $this->redirectToRoute('front_login');
@@ -37,6 +50,8 @@ final class ProductManagementController extends AbstractController
 
             try {
                 $data = $form->getData();
+
+                // Le payload front est normalisé avant d'être envoyé tel quel à l'API Platform.
                 $payload = [
                     'brand' => (string) ($data['brand'] ?? ''),
                     'name' => trim((string) ($data['name'] ?? '')),
@@ -50,6 +65,7 @@ final class ProductManagementController extends AbstractController
                 $product = $apiClient->createProduct($payload, $jwt);
                 $slug = is_string($product['slug'] ?? null) ? $product['slug'] : null;
 
+                // Certaines réponses API Platform exposent l'IRI sans champ slug direct.
                 if (($slug === null || $slug === '') && isset($product['@id']) && is_string($product['@id'])) {
                     $slug = basename($product['@id']);
                 }

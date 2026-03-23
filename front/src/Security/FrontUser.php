@@ -7,6 +7,9 @@ namespace App\Security;
 use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
+/**
+ * Représente dans le front l'utilisateur authentifié par l'API.
+ */
 final class FrontUser implements UserInterface, EquatableInterface
 {
     /**
@@ -18,14 +21,16 @@ final class FrontUser implements UserInterface, EquatableInterface
         private readonly string $firstName,
         private readonly string $lastName,
         private readonly array $roles,
-    ) {
-    }
+    ) {}
 
     /**
+     * Construit un utilisateur front à partir du payload minimal exposé par l'API, ou lance une exception si les données sont manquantes ou invalides.
+     * @throws \InvalidArgumentException
      * @param array<string, mixed> $payload
      */
     public static function fromApiPayload(array $payload): self
     {
+        // Le front reconstruit son utilisateur à partir du payload minimal exposé par /api/me.
         return new self(
             (int) $payload['id'],
             (string) $payload['email'],
@@ -56,9 +61,7 @@ final class FrontUser implements UserInterface, EquatableInterface
         return array_values(array_unique($roles));
     }
 
-    public function eraseCredentials(): void
-    {
-    }
+    public function eraseCredentials(): void {}
 
     public function getFirstName(): string
     {
@@ -77,6 +80,7 @@ final class FrontUser implements UserInterface, EquatableInterface
 
     public function isEqualTo(UserInterface $user): bool
     {
+        // Cette comparaison évite de recharger un utilisateur local qui n'existe pas en base front.
         return $user instanceof self
             && $this->id === $user->id
             && $this->email === $user->email

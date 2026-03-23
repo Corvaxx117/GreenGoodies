@@ -8,6 +8,9 @@ use App\Entity\Traits\TimestampableTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * Représente une ligne de commande avec un snapshot du produit au moment de l'achat.
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'order_items')]
 #[ORM\HasLifecycleCallbacks]
@@ -43,6 +46,7 @@ class OrderItem
 
     public function __construct(CustomerOrder $order, Product $product, int $quantity)
     {
+        // La quantité doit rester strictement positive tant que la ligne existe.
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('La quantité doit être strictement positive.');
         }
@@ -86,6 +90,7 @@ class OrderItem
 
     public function changeQuantity(int $quantity): self
     {
+        // La suppression d'une ligne se gère au niveau de la commande, pas par quantité négative ou nulle ici.
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('La quantité doit être strictement positive.');
         }
@@ -108,6 +113,7 @@ class OrderItem
 
     private function syncSnapshot(): void
     {
+        // Le nom et le prix sont copiés depuis le produit pour préserver l'historique même si le produit évolue.
         if ($this->product === null) {
             throw new \LogicException('Une ligne de commande doit référencer un produit au moment de sa création.');
         }

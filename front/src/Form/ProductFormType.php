@@ -13,12 +13,16 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * Décrit le formulaire front utilisé pour créer un produit via l'API.
+ */
 final class ProductFormType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $brandChoices = [];
 
+        // Les marques exposées par l'API sont converties en choix Symfony avec leur IRI comme valeur.
         foreach ($options['brands'] as $brand) {
             if (!is_array($brand) || !isset($brand['name'])) {
                 continue;
@@ -56,13 +60,15 @@ final class ProductFormType extends AbstractType
                 'constraints' => [new Assert\NotBlank(), new Assert\Positive()],
             ])
             ->add('imagePath', TextType::class, [
-                'label' => 'Chemin image',
+                'label' => 'Chemin image public',
+                'help' => 'Exemple : /assets/images/home/product-1.jpg',
                 'constraints' => [new Assert\NotBlank()],
             ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
+        // Le formulaire dépend d'une liste de marques injectée au moment du rendu.
         $resolver->setDefaults([
             'csrf_protection' => true,
             'csrf_token_id' => 'front_product',

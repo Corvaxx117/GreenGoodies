@@ -12,6 +12,8 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 
 /**
+ * Repository Doctrine des utilisateurs, incluant le support de rehash des mots de passe.
+ *
  * @extends ServiceEntityRepository<User>
  */
 final class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface
@@ -23,10 +25,12 @@ final class UserRepository extends ServiceEntityRepository implements PasswordUp
 
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {
+        // Symfony peut déclencher ce flux pour rehasher progressivement les mots de passe existants.
         if (!$user instanceof User) {
             throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', $user::class));
         }
 
+        // Le nouveau hash est persisté immédiatement pour conserver l'utilisateur synchronisé.
         $user->setPassword($newHashedPassword);
         $this->getEntityManager()->persist($user);
         $this->getEntityManager()->flush();

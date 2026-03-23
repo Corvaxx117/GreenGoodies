@@ -26,7 +26,22 @@
                 {% endfor %}
             </div>
 
-            <button class="product-page__cta" type="button">Ajouter au panier</button>
+            {% if app.user %}
+                <form class="product-page__purchase-form" method="post" action="{{ path('front_cart_item_upsert', { slug: product.slug }) }}">
+                    <div class="product-page__quantity-row">
+                        <label class="product-page__label" for="product-quantity">Quantité</label>
+                        <input id="product-quantity" class="product-page__quantity" type="number" name="quantity" min="0" value="{{ currentQuantity > 0 ? currentQuantity : 1 }}">
+                    </div>
+
+                    <input type="hidden" name="_token" value="{{ csrf_token('front_cart_item_' ~ product.slug) }}">
+
+                    <button class="product-page__cta" type="submit">
+                        {{ currentQuantity > 0 ? 'Mettre à jour' : 'Ajouter au panier' }}
+                    </button>
+                </form>
+            {% else %}
+                <a class="product-page__cta product-page__cta--link" href="{{ path('front_login') }}">Se connecter pour commander</a>
+            {% endif %}
         </div>
     </section>
 {% endblock %}

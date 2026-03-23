@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon compte | GreenGoodies{% endblock %}
+
+{% block body %}
+    <section class="dashboard-page">
+        <div class="dashboard-page__inner dashboard-page__inner--account">
+            <header class="dashboard-page__header dashboard-page__header--centered">
+                <h1 class="dashboard-page__title">Mon compte</h1>
+            </header>
+
+            <div class="account-stack">
+                <section class="account-card">
+                    <h2 class="account-card__title">Mes commandes</h2>
+
+                    {% if account.orders is not empty %}
+                        <div class="account-orders">
+                            <div class="account-orders__head">
+                                <span>N°</span>
+                                <span>Date</span>
+                                <span>Prix</span>
+                            </div>
+
+                            {% for order in account.orders %}
+                                <div class="account-orders__row">
+                                    <span>{{ order.reference }}</span>
+                                    <span>{{ order.validatedAt ? order.validatedAt|date('d/m/Y') : '-' }}</span>
+                                    <span>
+                                        {% if order.totalCents is divisible by(100) %}
+                                            {{ (order.totalCents / 100)|number_format(0, ',', ' ') }}€
+                                        {% else %}
+                                            {{ (order.totalCents / 100)|number_format(2, ',', ' ') }}€
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="account-card__empty">Aucune commande validée pour le moment.</p>
+                    {% endif %}
+                </section>
+
+                <section class="account-card">
+                    <h2 class="account-card__title">Mon accès API</h2>
+
+                    {% if account.apiAccessEnabled and account.apiKeyPrefix %}
+                        <p class="account-card__hint">Clé active : {{ account.apiKeyPrefix }}…</p>
+                    {% endif %}
+
+                    <form method="post" action="{{ path('front_account_api_access_toggle') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('front_account_api_access') }}">
+                        <input type="hidden" name="enabled" value="{{ account.apiAccessEnabled ? '1' : '0' }}">
+                        <button class="dashboard-page__primary-button dashboard-page__primary-button--compact" type="submit">
+                            {{ account.apiAccessEnabled ? 'Désactiver mon accès API' : 'Activer mon accès API' }}
+                        </button>
+                    </form>
+                </section>
+
+                <section class="account-card">
+                    <form method="post" action="{{ path('front_account_delete') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('front_account_delete') }}">
+                        <button class="dashboard-page__primary-button dashboard-page__primary-button--compact" type="submit">Supprimer mon compte</button>
+                    </form>
+                </section>
+            </div>
+        </div>
+    </section>
+{% endblock %}

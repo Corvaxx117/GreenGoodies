@@ -11,6 +11,9 @@ use App\Repository\ProductRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
+/**
+ * Fournit à la route commerçant uniquement les produits appartenant au propriétaire de la clé API.
+ */
 final readonly class MerchantProductsProvider implements ProviderInterface
 {
     public function __construct(
@@ -21,12 +24,14 @@ final readonly class MerchantProductsProvider implements ProviderInterface
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): iterable
     {
+        // L'authenticator par clé API place directement le propriétaire authentifié dans le contexte Security.
         $user = $this->security->getUser();
 
         if (!$user instanceof User) {
             throw new AccessDeniedException('Clé API invalide.');
         }
 
+        // Aucun identifiant n'est passé dans l'URL : le périmètre vient uniquement de l'utilisateur authentifié.
         return $this->productRepository->findPublishedBySeller($user);
     }
 }

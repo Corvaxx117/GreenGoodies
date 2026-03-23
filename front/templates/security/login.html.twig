@@ -13,7 +13,7 @@
                 <h1 class="auth-card__title">Connexion</h1>
 
                 {% if error %}
-                    <p class="flash flash--error">Identifiants incorrects</p>
+                    <p class="flash flash--error">{{ error.messageKey }}</p>
                 {% endif %}
 
                 {{ form_start(loginForm, { attr: { class: 'auth-form' } }) }}

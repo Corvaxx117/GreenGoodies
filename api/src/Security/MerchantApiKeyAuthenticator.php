@@ -17,6 +17,9 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface;
 
+/**
+ * Authentifie les routes commerçant à partir d'une clé API transmise dans l'en-tête X-API-Key.
+ */
 final class MerchantApiKeyAuthenticator extends AbstractAuthenticator implements AuthenticationEntryPointInterface
 {
     public function __construct(
@@ -27,11 +30,13 @@ final class MerchantApiKeyAuthenticator extends AbstractAuthenticator implements
 
     public function supports(Request $request): ?bool
     {
+        // Cet authenticator ne s'applique qu'au sous-ensemble de routes réservé aux partenaires/commerçants.
         return str_starts_with($request->getPathInfo(), '/api/merchant');
     }
 
     public function authenticate(Request $request): SelfValidatingPassport
     {
+        // La clé API est attendue en header HTTP plutôt qu'en query string pour éviter de la diffuser dans les URLs.
         $plainKey = trim((string) $request->headers->get('X-API-Key'));
 
         if ($plainKey === '') {
@@ -44,6 +49,7 @@ final class MerchantApiKeyAuthenticator extends AbstractAuthenticator implements
             throw new CustomUserMessageAuthenticationException('Clé API invalide ou désactivée.');
         }
 
+        // L'utilisation de la clé est tracée pour pouvoir auditer les accès partenaires.
         $apiKey->markAsUsed();
         $this->entityManager->flush();
 

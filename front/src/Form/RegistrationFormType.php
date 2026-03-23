@@ -14,10 +14,14 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * Décrit le formulaire d'inscription affiché par le front.
+ */
 final class RegistrationFormType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        // Le front valide les règles de base avant de transmettre la demande d'inscription à l'API.
         $builder
             ->add('lastName', TextType::class, [
                 'label' => 'Nom',
@@ -50,6 +54,7 @@ final class RegistrationFormType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
+        // Un jeton distinct protège la soumission du formulaire d'inscription.
         $resolver->setDefaults([
             'csrf_protection' => true,
             'csrf_token_id' => 'front_register',
