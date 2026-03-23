@@ -1,0 +1,21 @@
+security:
+    providers:
+        front_user_provider:
+            id: App\Security\FrontUserProvider
+
+    firewalls:
+        dev:
+            pattern: ^/(_profiler|_wdt|assets|build)/
+            security: false
+        main:
+            lazy: true
+            provider: front_user_provider
+            custom_authenticators:
+                - App\Security\ApiLoginAuthenticator
+            entry_point: App\Security\ApiLoginAuthenticator
+            logout:
+                path: front_logout
+                target: front_home
+
+    access_control:
+        - { path: ^/mes-produits/nouveau, roles: ROLE_USER }

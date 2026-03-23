@@ -1,0 +1,48 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use App\Exception\ApiRequestException;
+use App\Form\RegistrationFormType;
+use App\Service\Api\GreenGoodiesApiClient;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class RegistrationController extends AbstractController
+{
+    #[Route('/inscription', name: 'front_register', methods: ['GET', 'POST'])]
+    public function register(Request $request, GreenGoodiesApiClient $apiClient, FormFactoryInterface $formFactory): Response
+    {
+        $form = $formFactory->createNamed('', RegistrationFormType::class);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+
+            try {
+                $apiClient->register([
+                    'firstName' => $data['firstName'],
+                    'lastName' => $data['lastName'],
+                    'email' => $data['email'],
+                    'password' => $data['password'],
+                    'acceptTerms' => $data['acceptTerms'],
+                ]);
+
+                $this->addFlash('success', 'Compte créé. Vous pouvez maintenant vous connecter.');
+
+                return $this->redirectToRoute('front_login');
+            } catch (ApiRequestException $exception) {
+                $this->addFlash('error', $exception->getMessage());
+            }
+        }
+
+        return $this->render('registration/register.html.twig', [
+            'registrationForm' => $form,
+        ]);
+    }
+}

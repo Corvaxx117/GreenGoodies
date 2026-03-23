@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion | GreenGoodies{% endblock %}
+
+{% block body %}
+    <section class="auth-layout">
+        <div class="auth-layout__media">
+            <img src="{{ asset('assets/images/home/conviction.jpg') }}" alt="Univers floral GreenGoodies." width="370" height="486">
+        </div>
+
+        <div class="auth-layout__content">
+            <div class="auth-card">
+                <h1 class="auth-card__title">Connexion</h1>
+
+                {% if error %}
+                    <p class="flash flash--error">Identifiants incorrects</p>
+                {% endif %}
+
+                {{ form_start(loginForm, { attr: { class: 'auth-form' } }) }}
+                    {{ form_row(loginForm.email, { row_attr: { class: 'form-row' } }) }}
+                    {{ form_row(loginForm.password, { row_attr: { class: 'form-row' } }) }}
+                    <button class="form-submit" type="submit">Se connecter</button>
+                {{ form_end(loginForm) }}
+
+                <p class="auth-card__switch">
+                    <a href="{{ path('front_register') }}">Pas encore de compte ? S’inscrire</a>
+                </p>
+            </div>
+        </div>
+    </section>
+{% endblock %}

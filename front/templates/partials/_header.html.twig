@@ -1,0 +1,20 @@
+<header class="site-header">
+    <div class="shell site-header__inner">
+        <a class="brand" href="{{ path('front_home') }}" aria-label="Retour à l'accueil GreenGoodies">
+            <img src="{{ asset('assets/images/logo.svg') }}" alt="GreenGoodies" width="124" height="19">
+        </a>
+
+        <nav class="site-nav" aria-label="Navigation principale">
+            <a class="site-nav__link" href="{{ path('front_home') }}#products">Nos produits</a>
+
+            {% if app.user %}
+                <a class="site-nav__link" href="{{ path('front_product_new') }}">Ajouter un produit</a>
+                <a class="site-nav__link" href="#">Mon compte</a>
+                <a class="site-nav__link" href="{{ path('front_logout') }}">Déconnexion</a>
+            {% else %}
+                <a class="site-nav__link" href="{{ path('front_login') }}">Connexion</a>
+                <a class="site-nav__link" href="{{ path('front_register') }}">Inscription</a>
+            {% endif %}
+        </nav>
+    </div>
+</header>

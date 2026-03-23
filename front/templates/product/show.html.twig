@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ product.name }} | GreenGoodies{% endblock %}
+
+{% block body %}
+    <section class="product-page">
+        <div class="product-page__media">
+            <img src="{{ asset(product.imagePath) }}" alt="{{ product.name }}" width="740" height="740" loading="eager" fetchpriority="high">
+        </div>
+
+        <div class="product-page__content">
+            <p class="section-heading__label">{{ product.brand.name }}</p>
+            <h1 class="product-page__title">{{ product.name }}</h1>
+            <p class="product-page__price">
+                {% if product.priceCents is divisible by(100) %}
+                    {{ (product.priceCents / 100)|number_format(0, ',', ' ') }}€
+                {% else %}
+                    {{ (product.priceCents / 100)|number_format(2, ',', ' ') }}€
+                {% endif %}
+            </p>
+
+            <div class="product-page__description">
+                <p class="product-page__label">Description</p>
+                {% for paragraph in product.description|split('\n\n') %}
+                    <p>{{ paragraph }}</p>
+                {% endfor %}
+            </div>
+
+            <button class="product-page__cta" type="button">Ajouter au panier</button>
+        </div>
+    </section>
+{% endblock %}
