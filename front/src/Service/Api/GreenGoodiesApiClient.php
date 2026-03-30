@@ -107,48 +107,15 @@ final readonly class GreenGoodiesApiClient
     }
 
     /**
-     * Retourne le panier de l'utilisateur authentifié, ou lance une ApiRequestException en cas d'erreur.
+     * Crée une commande validée à partir des lignes du panier session envoyées par le front.
+     * @param array<string, mixed> $payload
+     *
      * @return array<string, mixed>
      */
-    public function getCart(string $jwt): array
+    public function createOrder(array $payload, string $jwt): array
     {
-        return $this->request('GET', '/api/cart', [
-            'headers' => $this->authenticatedHeaders($jwt),
-        ]);
-    }
-
-    /**
-     * Met à jour la quantité d'un produit dans le panier de l'utilisateur authentifié, ou lance une ApiRequestException en cas d'erreur.
-     * @return array<string, mixed>
-     */
-    public function updateCartItem(string $slug, int $quantity, string $jwt): array
-    {
-        return $this->request('POST', sprintf('/api/cart/items/%s', rawurlencode($slug)), [
-            'json' => [
-                'quantity' => $quantity,
-            ],
-            'headers' => $this->authenticatedHeaders($jwt),
-        ]);
-    }
-
-    /**
-     * Vide le panier de l'utilisateur authentifié, ou lance une ApiRequestException en cas d'erreur.
-     * @return array<string, mixed>
-     */
-    public function clearCart(string $jwt): array
-    {
-        return $this->request('POST', '/api/cart/clear', [
-            'headers' => $this->authenticatedHeaders($jwt),
-        ]);
-    }
-
-    /**
-     * Vide le panier de l'utilisateur authentifié, ou lance une ApiRequestException en cas d'erreur.
-     * @return array<string, mixed>
-     */
-    public function checkoutCart(string $jwt): array
-    {
-        return $this->request('POST', '/api/cart/checkout', [
+        return $this->request('POST', '/api/orders', [
+            'json' => $payload,
             'headers' => $this->authenticatedHeaders($jwt),
         ]);
     }

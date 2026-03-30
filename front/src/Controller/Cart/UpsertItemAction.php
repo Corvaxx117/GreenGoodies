@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Cart;
 
-use App\Controller\Shared\UsesApiSessionTrait;
-use App\Exception\ApiRequestException;
-use App\Security\FrontAuthenticationManager;
-use App\Service\Api\GreenGoodiesApiClient;
+use App\Service\Cart\CartSessionManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,15 +16,12 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  */
 final class UpsertItemAction extends AbstractController
 {
-    use UsesApiSessionTrait;
-
     #[Route('/mon-panier/articles/{slug}', name: 'front_cart_item_upsert', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function __invoke(
         string $slug,
         Request $request,
-        GreenGoodiesApiClient $apiClient,
-        FrontAuthenticationManager $frontAuthenticationManager,
+        CartSessionManager $cartSessionManager,
     ): Response
     {
         // Le formulaire produit est protégé par un jeton CSRF dédié au slug manipulé.
@@ -35,12 +29,6 @@ final class UpsertItemAction extends AbstractController
             $this->addFlash('error', 'La requête est invalide.');
 
             return $this->redirectToRoute('front_product_show', ['slug' => $slug]);
-        }
-
-        $jwt = $this->getJwtFromSession($request);
-
-        if ($jwt === null) {
-            return $this->redirectToLogin($request, $frontAuthenticationManager);
         }
 
         $quantity = filter_var($request->request->get('quantity'), FILTER_VALIDATE_INT);
@@ -51,22 +39,12 @@ final class UpsertItemAction extends AbstractController
             return $this->redirectToRoute('front_product_show', ['slug' => $slug]);
         }
 
-        try {
-            // Une quantité à 0 est interprétée par l'API comme une suppression de ligne.
-            $apiClient->updateCartItem($slug, $quantity, $jwt);
-            $this->addFlash(
-                'success',
-                $quantity === 0 ? 'Produit retiré du panier.' : 'Panier mis à jour.',
-            );
-        } catch (ApiRequestException $exception) {
-            if ($exception->getStatusCode() === Response::HTTP_UNAUTHORIZED) {
-                return $this->redirectToLogin($request, $frontAuthenticationManager);
-            }
-
-            $this->addFlash('error', $exception->getMessage());
-
-            return $this->redirectToRoute('front_product_show', ['slug' => $slug]);
-        }
+        // Le panier front n'appelle plus l'API : la quantité est conservée en session.
+        $cartSessionManager->upsert($request->getSession(), $slug, $quantity);
+        $this->addFlash(
+            'success',
+            $quantity === 0 ? 'Produit retiré du panier.' : 'Panier mis à jour.',
+        );
 
         return $this->redirectToRoute('front_cart_show');
     }

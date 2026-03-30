@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Security;
 
+use App\Service\Cart\CartSessionManager;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -30,8 +31,9 @@ final readonly class FrontAuthenticationManager
 
         $session = $request->getSession();
 
-        // Le JWT applicatif et le token du firewall sont retirés pour éviter un rechargement ultérieur.
+        // Le JWT applicatif, le panier session et le token du firewall sont retirés pour éviter un rechargement ultérieur.
         $session->remove(ApiLoginAuthenticator::SESSION_JWT_KEY);
+        $session->remove(CartSessionManager::SESSION_KEY);
         $session->remove(self::FIREWALL_SESSION_KEY);
     }
 }

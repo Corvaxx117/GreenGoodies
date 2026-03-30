@@ -11,7 +11,7 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * Fournit les requêtes de lecture dédiées au panier et à l'historique de commandes.
+ * Fournit les requêtes de lecture dédiées à l'historique de commandes.
  *
  * @extends ServiceEntityRepository<CustomerOrder>
  */
@@ -42,21 +42,4 @@ final class CustomerOrderRepository extends ServiceEntityRepository
         return $orders;
     }
 
-    public function findDraftForUser(User $user): ?CustomerOrder
-    {
-        // Le panier courant correspond à la commande brouillon la plus récente de l'utilisateur.
-        return $this->createQueryBuilder('customerOrder')
-            ->leftJoin('customerOrder.items', 'items')
-            ->addSelect('items')
-            ->leftJoin('items.product', 'product')
-            ->addSelect('product')
-            ->andWhere('customerOrder.user = :user')
-            ->andWhere('customerOrder.status = :status')
-            ->setParameter('user', $user)
-            ->setParameter('status', OrderStatus::Draft)
-            ->orderBy('customerOrder.createdAt', 'DESC')
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
-    }
 }

@@ -8,6 +8,7 @@ use App\Controller\Shared\UsesApiSessionTrait;
 use App\Exception\ApiRequestException;
 use App\Security\FrontAuthenticationManager;
 use App\Service\Api\GreenGoodiesApiClient;
+use App\Service\Cart\CartSessionManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,9 +28,10 @@ final class CheckoutAction extends AbstractController
         Request $request,
         GreenGoodiesApiClient $apiClient,
         FrontAuthenticationManager $frontAuthenticationManager,
+        CartSessionManager $cartSessionManager,
     ): Response
     {
-        // La validation de commande déclenche une transition métier irréversible draft -> validated.
+        // La validation de commande envoie le panier session à l'API pour créer une commande réelle.
         if (!$this->isCsrfTokenValid('front_cart_checkout', (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'La requête est invalide.');
 
@@ -42,14 +44,24 @@ final class CheckoutAction extends AbstractController
             return $this->redirectToLogin($request, $frontAuthenticationManager);
         }
 
+        if (!$cartSessionManager->hasItems($request->getSession())) {
+            $this->addFlash('error', 'Votre panier est vide.');
+
+            return $this->redirectToRoute('front_cart_show');
+        }
+
         try {
-            $response = $apiClient->checkoutCart($jwt);
+            $response = $apiClient->createOrder(
+                ['items' => $cartSessionManager->toOrderPayload($request->getSession())],
+                $jwt,
+            );
             $message = (string) ($response['message'] ?? 'Commande validée.');
 
             if (isset($response['reference']) && is_string($response['reference'])) {
                 $message = sprintf('%s Référence : %s.', $message, $response['reference']);
             }
 
+            $cartSessionManager->clear($request->getSession());
             $this->addFlash('success', $message);
         } catch (ApiRequestException $exception) {
             if ($exception->getStatusCode() === Response::HTTP_UNAUTHORIZED) {

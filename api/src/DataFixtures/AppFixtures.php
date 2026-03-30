@@ -13,7 +13,7 @@ use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * Charge un jeu de données cohérent pour démontrer le catalogue, le panier et l'espace compte.
+ * Charge un jeu de données cohérent pour démontrer le catalogue, les commandes et l'espace compte.
  */
 final class AppFixtures extends Fixture
 {
@@ -74,11 +74,6 @@ final class AppFixtures extends Fixture
      */
     private function seedOrders(ObjectManager $manager, User $merchant, User $customer, array $products): void
     {
-        // Un panier draft est préparé pour rendre immédiatement visible l'écran "Mon panier".
-        $merchantCart = new CustomerOrder($merchant);
-        $merchantCart->addItem($products['necessaire-deodorant-bio'], 1);
-        $manager->persist($merchantCart);
-
         // Des commandes validées sont ajoutées pour alimenter l'historique du compte.
         foreach ([
             [

@@ -13,7 +13,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Représente à la fois un panier actif et une commande validée selon son statut.
+ * Représente une commande utilisateur persistée, validée ou annulée.
  */
 #[ORM\Entity(repositoryClass: CustomerOrderRepository::class)]
 #[ORM\Table(name: 'customer_orders', indexes: [new ORM\Index(name: 'idx_customer_order_status', columns: ['status'])])]
@@ -118,14 +118,6 @@ class CustomerOrder
         }
 
         $this->items->add(new OrderItem($this, $product, $quantity));
-        $this->recalculateTotal();
-
-        return $this;
-    }
-
-    public function removeItem(OrderItem $item): self
-    {
-        $this->items->removeElement($item);
         $this->recalculateTotal();
 
         return $this;
