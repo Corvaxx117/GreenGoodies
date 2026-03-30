@@ -18,8 +18,7 @@ final readonly class CartManager
     public function __construct(
         private CustomerOrderRepository $orderRepository,
         private EntityManagerInterface $entityManager,
-    ) {
-    }
+    ) {}
 
     public function getDraftOrder(User $user): ?CustomerOrder
     {
@@ -39,6 +38,7 @@ final readonly class CartManager
 
             $item = $order->findItemForProduct($product);
 
+            // Si le produit n'est pas déjà dans le panier, aucune action n'est nécessaire même si la quantité demandée est négative.
             if ($item === null) {
                 return $order;
             }

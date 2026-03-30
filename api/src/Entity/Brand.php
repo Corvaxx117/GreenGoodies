@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\BrandRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -22,8 +23,22 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[ApiResource(
     operations: [
-        new Get(normalizationContext: ['groups' => ['brand:read']]),
-        new GetCollection(normalizationContext: ['groups' => ['brand:read']]),
+        new Get(
+            normalizationContext: ['groups' => ['brand:read']],
+            openapi: new OpenApiOperation(
+                tags: ['Brands'],
+                summary: 'Voir une marque',
+                description: 'Retourne une marque à partir de son nom.',
+            ),
+        ),
+        new GetCollection(
+            normalizationContext: ['groups' => ['brand:read']],
+            openapi: new OpenApiOperation(
+                tags: ['Brands'],
+                summary: 'Lister les marques',
+                description: 'Retourne la liste des marques disponibles pour référencer un produit.',
+            ),
+        ),
     ],
 )]
 #[ORM\Entity(repositoryClass: BrandRepository::class)]

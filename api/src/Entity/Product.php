@@ -9,8 +9,9 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
-use App\ApiState\MerchantProductsProvider;
-use App\ApiState\ProductProcessor;
+use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
+use App\ApiState\Product\MerchantProductsProvider;
+use App\ApiState\Product\ProductProcessor;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\ProductRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -28,21 +29,43 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(
             normalizationContext: ['groups' => ['product:read', 'brand:read']],
+            openapi: new OpenApiOperation(
+                tags: ['Catalog'],
+                summary: 'Voir un produit',
+                description: 'Retourne le détail d’un produit publié à partir de son slug.',
+            ),
         ),
         new GetCollection(
             normalizationContext: ['groups' => ['product:read', 'brand:read']],
+            openapi: new OpenApiOperation(
+                tags: ['Catalog'],
+                summary: 'Lister les produits du catalogue',
+                description: 'Retourne les produits publiés visibles sur le catalogue public.',
+            ),
         ),
         new GetCollection(
             uriTemplate: '/merchant/products',
             normalizationContext: ['groups' => ['product:read', 'brand:read']],
             security: "is_granted('ROLE_USER')",
             provider: MerchantProductsProvider::class,
+            openapi: new OpenApiOperation(
+                tags: ['Merchant API'],
+                summary: 'Lister les produits du commerçant',
+                description: 'Retourne uniquement les produits du propriétaire de la clé API `X-API-Key`.',
+                security: [['merchantApiKey' => []]],
+            ),
         ),
         new Post(
             denormalizationContext: ['groups' => ['product:write']],
             normalizationContext: ['groups' => ['product:read', 'brand:read']],
             security: "is_granted('ROLE_USER')",
             processor: ProductProcessor::class,
+            openapi: new OpenApiOperation(
+                tags: ['Catalog'],
+                summary: 'Créer un produit',
+                description: 'Ajoute un produit pour l’utilisateur authentifié côté front.',
+                security: [['JWT' => []]],
+            ),
         ),
     ],
 )]
