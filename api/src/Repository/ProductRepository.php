@@ -69,4 +69,22 @@ final class ProductRepository extends ServiceEntityRepository
 
         return $products;
     }
+
+    /**
+     * @return list<Product>
+     */
+    public function findLatestBySeller(User $seller, int $limit = 8): array
+    {
+        /** @var list<Product> $products */
+        // L'espace compte liste les derniers produits ajoutés par l'utilisateur, publiés ou non.
+        $products = $this->createQueryBuilder('product')
+            ->andWhere('product.seller = :seller')
+            ->setParameter('seller', $seller)
+            ->orderBy('product.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return $products;
+    }
 }

@@ -1,5 +1,2 @@
-controllers:
-    resource:
-        path: ../src/Controller/
-        namespace: App\Controller
-    type: attribute
+# Les routes de l'API sont désormais déclarées via API Platform (`src/Entity`, `src/ApiResource`)
+# et via les fichiers dédiés présents dans `config/routes/`.

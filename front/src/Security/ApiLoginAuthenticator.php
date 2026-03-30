@@ -34,6 +34,7 @@ final class ApiLoginAuthenticator extends AbstractLoginFormAuthenticator
     // Le front ne gère pas de formulaire de connexion classique, mais une route dédiée qui reçoit les données du formulaire et les transmet à l'API.
     public function supports(Request $request): bool
     {
+        // On vérifie que la route correspond à celle du formulaire de connexion et que la méthode est POST.
         return $request->attributes->get('_route') === self::LOGIN_ROUTE && $request->isMethod('POST');
     }
 
@@ -51,6 +52,7 @@ final class ApiLoginAuthenticator extends AbstractLoginFormAuthenticator
         $email = trim((string) ($data['email'] ?? ''));
         $password = (string) ($data['password'] ?? '');
 
+        // On mémorise l'email en session pour le réafficher dans le formulaire en cas d'erreur de connexion.
         $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $email);
 
         try {
@@ -66,6 +68,7 @@ final class ApiLoginAuthenticator extends AbstractLoginFormAuthenticator
 
         // L'utilisateur Symfony du front est une projection du profil renvoyé par l'API.
         $frontUser = FrontUser::fromApiPayload($authentication['user']);
+        // Le JWT est stocké dans les attributs de la requête pour être récupéré dans onAuthenticationSuccess et conservé en session.
         $request->attributes->set(self::SESSION_JWT_KEY, $authentication['token']);
 
         // Le Passport est auto-validant car l'authentification a déjà été vérifiée auprès de l'API,
