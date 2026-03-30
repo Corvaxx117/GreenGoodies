@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Cart;
 
-use App\Controller\Shared\UsesApiSessionTrait;
-use App\Exception\ApiRequestException;
-use App\Security\FrontAuthenticationManager;
-use App\Service\Api\GreenGoodiesApiClient;
+use App\Service\Cart\CartSessionManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,15 +16,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  */
 final class ClearAction extends AbstractController
 {
-    use UsesApiSessionTrait;
-
     #[Route('/mon-panier/vider', name: 'front_cart_clear', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function __invoke(
-        Request $request,
-        GreenGoodiesApiClient $apiClient,
-        FrontAuthenticationManager $frontAuthenticationManager,
-    ): Response
+    public function __invoke(Request $request, CartSessionManager $cartSessionManager): Response
     {
         // La vidange du panier est aussi protégée par CSRF car elle modifie l'état métier.
         if (!$this->isCsrfTokenValid('front_cart_clear', (string) $request->request->get('_token'))) {
@@ -36,22 +27,8 @@ final class ClearAction extends AbstractController
             return $this->redirectToRoute('front_cart_show');
         }
 
-        $jwt = $this->getJwtFromSession($request);
-
-        if ($jwt === null) {
-            return $this->redirectToLogin($request, $frontAuthenticationManager);
-        }
-
-        try {
-            $response = $apiClient->clearCart($jwt);
-            $this->addFlash('success', (string) ($response['message'] ?? 'Panier vidé.'));
-        } catch (ApiRequestException $exception) {
-            if ($exception->getStatusCode() === Response::HTTP_UNAUTHORIZED) {
-                return $this->redirectToLogin($request, $frontAuthenticationManager);
-            }
-
-            $this->addFlash('error', $exception->getMessage());
-        }
+        $cartSessionManager->clear($request->getSession());
+        $this->addFlash('success', 'Panier vidé.');
 
         return $this->redirectToRoute('front_cart_show');
     }

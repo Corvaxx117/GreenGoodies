@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\EventListener;
 
 use App\Security\ApiLoginAuthenticator;
+use App\Service\Cart\CartSessionManager;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Security\Http\Event\LogoutEvent;
 
@@ -16,7 +17,8 @@ final class LogoutListener
 {
     public function __invoke(LogoutEvent $event): void
     {
-        // Le front conserve le JWT en session ; il doit donc être retiré explicitement au logout.
+        // Le front conserve le JWT et désormais le panier en session ; ils doivent être retirés explicitement au logout.
         $event->getRequest()->getSession()->remove(ApiLoginAuthenticator::SESSION_JWT_KEY);
+        $event->getRequest()->getSession()->remove(CartSessionManager::SESSION_KEY);
     }
 }
