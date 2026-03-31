@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\Account\CurrentUserView;
 use App\ApiResource\Auth\RegisterInput;
+use App\Entity\Merchant;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -38,7 +39,9 @@ final readonly class RegisterUserProcessor implements ProcessorInterface
             throw new ConflictHttpException('Cette adresse email est déjà utilisée.');
         }
 
-        $user = new User($data->email, $data->firstName, $data->lastName);
+        $user = $data->accountType === 'merchant'
+            ? new Merchant($data->email, $data->firstName, $data->lastName)
+            : new User($data->email, $data->firstName, $data->lastName);
         $user
             ->acceptTerms()
             ->setPassword($this->passwordHasher->hashPassword($user, $data->password));

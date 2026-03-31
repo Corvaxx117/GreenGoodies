@@ -6,8 +6,8 @@ namespace App\ApiState\Product;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
+use App\Entity\Merchant;
 use App\Entity\Product;
-use App\Entity\User;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -35,7 +35,7 @@ final readonly class ProductProcessor implements ProcessorInterface
 
         $user = $this->security->getUser();
 
-        if (!$user instanceof User) {
+        if (!$user instanceof Merchant) {
             throw new AccessDeniedException('Vous devez être connecté pour ajouter un produit.');
         }
 

@@ -12,6 +12,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 final class RegisterInput
 {
     #[Assert\NotBlank]
+    #[Assert\Choice(choices: ['customer', 'merchant'])]
+    public string $accountType = 'customer';
+
+    #[Assert\NotBlank]
     #[Assert\Length(max: 100)]
     public string $firstName = '';
 

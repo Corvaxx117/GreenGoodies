@@ -8,7 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\Account\ActivateApiKeyResult;
 use App\Entity\ApiKey;
-use App\Entity\User;
+use App\Entity\Merchant;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -28,8 +28,8 @@ final readonly class ActivateApiKeyProcessor implements ProcessorInterface
     {
         $user = $this->security->getUser();
 
-        if (!$user instanceof User) {
-            throw new AccessDeniedException('Authentification requise.');
+        if (!$user instanceof Merchant) {
+            throw new AccessDeniedException('Réservé aux commerçants.');
         }
 
         // La clé n'est produite en clair qu'au moment de cette activation.

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Product;
-use App\Entity\User;
+use App\Entity\Merchant;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -54,7 +54,7 @@ final class ProductRepository extends ServiceEntityRepository
     /**
      * @return list<Product>
      */
-    public function findPublishedBySeller(User $seller): array
+    public function findPublishedBySeller(Merchant $seller): array
     {
         /** @var list<Product> $products */
         // La route commerçant filtre les produits sur leur propriétaire métier.
@@ -73,7 +73,7 @@ final class ProductRepository extends ServiceEntityRepository
     /**
      * @return list<Product>
      */
-    public function findLatestBySeller(User $seller, int $limit = 8): array
+    public function findLatestBySeller(Merchant $seller, int $limit = 8): array
     {
         /** @var list<Product> $products */
         // L'espace compte liste les derniers produits ajoutés par l'utilisateur, publiés ou non.

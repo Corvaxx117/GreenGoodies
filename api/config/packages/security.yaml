@@ -39,7 +39,7 @@ security:
         - { path: ^/auth, roles: PUBLIC_ACCESS }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api$, roles: PUBLIC_ACCESS }
-        - { path: ^/api/merchant, roles: ROLE_USER }
+        - { path: ^/api/merchant, roles: ROLE_MERCHANT }
 
 when@test:
     security:

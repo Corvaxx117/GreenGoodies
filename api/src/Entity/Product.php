@@ -46,7 +46,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new GetCollection(
             uriTemplate: '/merchant/products',
             normalizationContext: ['groups' => ['product:read', 'brand:read']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_MERCHANT')",
             provider: MerchantProductsProvider::class,
             openapi: new OpenApiOperation(
                 tags: ['Merchant API'],
@@ -58,7 +58,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Post(
             denormalizationContext: ['groups' => ['product:write']],
             normalizationContext: ['groups' => ['product:read', 'brand:read']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_MERCHANT')",
             processor: ProductProcessor::class,
             openapi: new OpenApiOperation(
                 tags: ['Catalog'],
@@ -91,7 +91,7 @@ class Product
 
     #[ORM\ManyToOne(inversedBy: 'products')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?User $seller = null;
+    private ?Merchant $seller = null;
 
     #[Groups(['product:read', 'product:write'])]
     #[ORM\ManyToOne(inversedBy: 'products')]
@@ -166,12 +166,12 @@ class Product
         return $this->changeSlug($slug);
     }
 
-    public function getSeller(): ?User
+    public function getSeller(): ?Merchant
     {
         return $this->seller;
     }
 
-    public function assignSeller(?User $seller): self
+    public function assignSeller(?Merchant $seller): self
     {
         // Le rattachement vendeur sert à la fois au front et à la route commerçant filtrée par clé API.
         $this->seller = $seller;
@@ -185,7 +185,7 @@ class Product
         return $this;
     }
 
-    public function setSeller(?User $seller): self
+    public function setSeller(?Merchant $seller): self
     {
         return $this->assignSeller($seller);
     }

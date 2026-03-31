@@ -6,7 +6,6 @@ namespace App\Entity;
 
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\UserRepository;
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -16,10 +15,16 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Représente un compte applicatif pouvant acheter, créer des produits et activer un accès API commerçant.
+ * Représente un compte client "lambda", racine de l'héritage des utilisateurs applicatifs.
  */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'users')]
+#[ORM\InheritanceType('SINGLE_TABLE')]
+#[ORM\DiscriminatorColumn(name: 'account_type', type: 'string', length: 32)]
+#[ORM\DiscriminatorMap([
+    'customer' => User::class,
+    'merchant' => Merchant::class,
+])]
 #[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(fields: ['email'], message: 'Cette adresse email est déjà utilisée.')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
@@ -29,7 +34,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var list<string>
      */
-    private const DEFAULT_ROLES = ['ROLE_USER'];
+    private const DEFAULT_ROLES = [];
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -45,7 +50,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var list<string>
      */
     #[ORM\Column]
-    private array $roles = self::DEFAULT_ROLES;
+    private array $roles = [];
 
     #[ORM\Column]
     private string $password;
@@ -60,20 +65,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\Length(max: 100)]
     private string $lastName;
 
-    #[ORM\Column(options: ['default' => false])]
-    private bool $apiAccessEnabled = false;
-
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $termsAcceptedAt = null;
-
-    #[ORM\OneToOne(mappedBy: 'user', targetEntity: ApiKey::class, cascade: ['persist', 'remove'])]
-    private ?ApiKey $apiKey = null;
-
-    /**
-     * @var Collection<int, Product>
-     */
-    #[ORM\OneToMany(mappedBy: 'seller', targetEntity: Product::class)]
-    private Collection $products;
 
     /**
      * @var Collection<int, CustomerOrder>
@@ -90,8 +83,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->firstName = trim($firstName);
         $this->lastName = trim($lastName);
         $this->roles = $this->normalizeRoles($roles);
-        $this->products = new ArrayCollection();
-        $this->orders = new ArrayCollection();
+        $this->orders = new \Doctrine\Common\Collections\ArrayCollection();
         $this->markAsCreated();
     }
 
@@ -123,7 +115,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getRoles(): array
     {
-        return $this->normalizeRoles($this->roles);
+        return $this->normalizeRoles([...$this->getStoredRoles(), 'ROLE_USER', 'ROLE_CUSTOMER']);
     }
 
     /**
@@ -190,28 +182,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return trim(sprintf('%s %s', $this->firstName, $this->lastName));
     }
 
-    public function isApiAccessEnabled(): bool
-    {
-        return $this->apiAccessEnabled;
-    }
-
-    public function enableApiAccess(): self
-    {
-        // Ce flag complète l'existence de la clé pour autoriser réellement l'accès API commerçant.
-        $this->apiAccessEnabled = true;
-        $this->touch();
-
-        return $this;
-    }
-
-    public function disableApiAccess(): self
-    {
-        $this->apiAccessEnabled = false;
-        $this->touch();
-
-        return $this;
-    }
-
     public function getTermsAcceptedAt(): ?\DateTimeImmutable
     {
         return $this->termsAcceptedAt;
@@ -222,62 +192,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // La date d'acceptation des CGU est conservée à titre de preuve fonctionnelle.
         $this->termsAcceptedAt = $acceptedAt ?? new \DateTimeImmutable();
         $this->touch();
-
-        return $this;
-    }
-
-    public function getApiKey(): ?ApiKey
-    {
-        return $this->apiKey;
-    }
-
-    public function attachApiKey(ApiKey $apiKey): self
-    {
-        // La relation bidirectionnelle est synchronisée des deux côtés.
-        $this->apiKey = $apiKey;
-
-        if ($apiKey->getUser() !== $this) {
-            $apiKey->changeUser($this);
-        }
-
-        $this->touch();
-
-        return $this;
-    }
-
-    public function removeApiKey(): self
-    {
-        $this->apiKey = null;
-        $this->touch();
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Product>
-     */
-    public function getProducts(): Collection
-    {
-        return $this->products;
-    }
-
-    public function addProduct(Product $product): self
-    {
-        // Le vendeur devient la source de vérité du rattachement produit <-> utilisateur.
-        if (!$this->products->contains($product)) {
-            $this->products->add($product);
-        }
-
-        if ($product->getSeller() !== $this) {
-            $product->assignSeller($this);
-        }
-
-        return $this;
-    }
-
-    public function removeProduct(Product $product): self
-    {
-        $this->products->removeElement($product);
 
         return $this;
     }
@@ -299,16 +213,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function isMerchant(): bool
+    {
+        return false;
+    }
+
+    public function isApiAccessEnabled(): bool
+    {
+        return false;
+    }
+
+    public function getApiKey(): ?ApiKey
+    {
+        return null;
+    }
+
+    public function getAccountType(): string
+    {
+        return 'customer';
+    }
+
     /**
      * @param list<string> $roles
      *
      * @return list<string>
      */
-    private function normalizeRoles(array $roles): array
+    protected function normalizeRoles(array $roles): array
     {
-        // ROLE_USER est toujours forcé pour conserver un socle minimum d'autorisations.
-        $roles[] = 'ROLE_USER';
-
         $roles = array_map(
             static fn (string $role): string => strtoupper(trim($role)),
             $roles,
@@ -317,5 +248,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $roles = array_filter($roles);
 
         return array_values(array_unique($roles));
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function getStoredRoles(): array
+    {
+        return $this->roles;
     }
 }
