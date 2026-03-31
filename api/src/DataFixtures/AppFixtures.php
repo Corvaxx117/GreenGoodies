@@ -6,6 +6,7 @@ namespace App\DataFixtures;
 
 use App\Entity\Brand;
 use App\Entity\CustomerOrder;
+use App\Entity\Merchant;
 use App\Entity\Product;
 use App\Entity\User;
 use Doctrine\Bundle\FixturesBundle\Fixture;
@@ -34,7 +35,7 @@ final class AppFixtures extends Fixture
             $brands[$brandName] = $brand;
         }
 
-        $merchant = new User('merchant@greengoodies.test', 'Aurelie', 'Martin');
+        $merchant = new Merchant('merchant@greengoodies.test', 'Aurelie', 'Martin');
         $merchant
             ->acceptTerms()
             ->setPassword($this->passwordHasher->hashPassword($merchant, 'Password123!'));

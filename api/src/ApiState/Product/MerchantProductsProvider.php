@@ -6,7 +6,7 @@ namespace App\ApiState\Product;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
-use App\Entity\User;
+use App\Entity\Merchant;
 use App\Repository\ProductRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -27,7 +27,7 @@ final readonly class MerchantProductsProvider implements ProviderInterface
         // L'authenticator par clé API place directement le propriétaire authentifié dans le contexte Security.
         $user = $this->security->getUser();
 
-        if (!$user instanceof User) {
+        if (!$user instanceof Merchant) {
             throw new AccessDeniedException('Clé API invalide.');
         }
 

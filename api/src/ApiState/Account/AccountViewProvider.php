@@ -7,6 +7,7 @@ namespace App\ApiState\Account;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\Account\AccountView;
+use App\Entity\Merchant;
 use App\Entity\User;
 use App\Repository\CustomerOrderRepository;
 use App\Repository\ProductRepository;
@@ -37,7 +38,7 @@ final readonly class AccountViewProvider implements ProviderInterface
         return AccountView::fromUserOrdersAndProducts(
             $user,
             $this->customerOrderRepository->findLatestValidatedForUser($user, 10),
-            $this->productRepository->findLatestBySeller($user, 8),
+            $user instanceof Merchant ? $this->productRepository->findLatestBySeller($user, 8) : [],
         );
     }
 }

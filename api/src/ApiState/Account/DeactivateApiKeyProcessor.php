@@ -7,7 +7,7 @@ namespace App\ApiState\Account;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\Shared\MessageResource;
-use App\Entity\User;
+use App\Entity\Merchant;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -27,8 +27,8 @@ final readonly class DeactivateApiKeyProcessor implements ProcessorInterface
     {
         $user = $this->security->getUser();
 
-        if (!$user instanceof User) {
-            throw new AccessDeniedException('Authentification requise.');
+        if (!$user instanceof Merchant) {
+            throw new AccessDeniedException('Réservé aux commerçants.');
         }
 
         // Le flag utilisateur et la clé doivent être désactivés de concert pour fermer complètement l'accès.

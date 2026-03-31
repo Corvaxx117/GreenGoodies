@@ -26,7 +26,7 @@ class ApiKey
 
     #[ORM\OneToOne(inversedBy: 'apiKey')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private User $user;
+    private Merchant $user;
 
     #[ORM\Column(length: 16, unique: true)]
     private string $keyPrefix;
@@ -40,7 +40,7 @@ class ApiKey
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $lastUsedAt = null;
 
-    public function __construct(User $user, string $plainTextKey, bool $enabled = true)
+    public function __construct(Merchant $user, string $plainTextKey, bool $enabled = true)
     {
         $this->changeUser($user);
         $this->rotate($plainTextKey, $enabled);
@@ -52,12 +52,12 @@ class ApiKey
         return $this->id;
     }
 
-    public function getUser(): User
+    public function getUser(): Merchant
     {
         return $this->user;
     }
 
-    public function changeUser(User $user): self
+    public function changeUser(Merchant $user): self
     {
         $this->user = $user;
 

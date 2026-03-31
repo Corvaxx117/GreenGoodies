@@ -72,7 +72,7 @@ use App\Entity\User;
             input: false,
             output: ActivateApiKeyResult::class,
             processor: ActivateApiKeyProcessor::class,
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_MERCHANT')",
             openapi: new OpenApiOperation(
                 tags: ['Merchant API'],
                 summary: 'Activer la clé API commerçant',
@@ -86,7 +86,7 @@ use App\Entity\User;
             input: false,
             output: MessageResource::class,
             processor: DeactivateApiKeyProcessor::class,
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_MERCHANT')",
             openapi: new OpenApiOperation(
                 tags: ['Merchant API'],
                 summary: 'Désactiver la clé API commerçant',
