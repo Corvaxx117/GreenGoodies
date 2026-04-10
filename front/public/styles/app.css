@@ -800,6 +800,26 @@ a {
     margin: 0;
 }
 
+.account-products__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem 1.2rem;
+    margin-top: 0.5rem;
+}
+
+.account-products__link {
+    color: var(--color-ink);
+    font-size: 0.96rem;
+    border-bottom: 1px solid transparent;
+    transition: color 180ms ease, border-color 180ms ease;
+}
+
+.account-products__link:hover,
+.account-products__link:focus-visible {
+    color: var(--color-brand);
+    border-color: currentColor;
+}
+
 .account-orders {
     display: grid;
 }

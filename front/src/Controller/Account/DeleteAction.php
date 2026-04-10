@@ -6,9 +6,9 @@ namespace App\Controller\Account;
 
 use App\Controller\Shared\UsesApiSessionTrait;
 use App\Exception\ApiRequestException;
+use App\HttpClient\GreenGoodies\UserClient;
 use App\Security\ApiLoginAuthenticator;
 use App\Security\FrontAuthenticationManager;
-use App\Service\Api\GreenGoodiesApiClient;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,14 +23,17 @@ final class DeleteAction extends AbstractController
 {
     use UsesApiSessionTrait;
 
+    public function __construct(
+        private readonly UserClient $userClient,
+        private readonly FrontAuthenticationManager $frontAuthenticationManager,
+        private readonly TokenStorageInterface $tokenStorage,
+    ) {
+    }
+
     #[Route('/mon-compte/supprimer', name: 'front_account_delete', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function __invoke(
-        Request $request,
-        GreenGoodiesApiClient $apiClient,
-        FrontAuthenticationManager $frontAuthenticationManager,
-        TokenStorageInterface $tokenStorage,
-    ): Response {
+    public function __invoke(Request $request): Response
+    {
         // La suppression de compte est sécurisée par CSRF car elle détruit des données persistées.
         if (!$this->isCsrfTokenValid('front_account_delete', (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'La requête est invalide.');
@@ -41,14 +44,14 @@ final class DeleteAction extends AbstractController
         $jwt = $this->getJwtFromSession($request);
 
         if ($jwt === null) {
-            return $this->redirectToLogin($request, $frontAuthenticationManager);
+            return $this->redirectToLogin($request, $this->frontAuthenticationManager);
         }
 
         try {
-            $apiClient->deleteAccount($jwt);
+            $this->userClient->deleteAccount($jwt);
         } catch (ApiRequestException $exception) {
             if ($exception->getStatusCode() === Response::HTTP_UNAUTHORIZED) {
-                return $this->redirectToLogin($request, $frontAuthenticationManager);
+                return $this->redirectToLogin($request, $this->frontAuthenticationManager);
             }
 
             $this->addFlash('error', $exception->getMessage());
@@ -57,7 +60,7 @@ final class DeleteAction extends AbstractController
         }
 
         // Après suppression côté API, la session locale Symfony du front est explicitement invalidée.
-        $tokenStorage->setToken(null);
+        $this->tokenStorage->setToken(null);
         $request->getSession()->remove(ApiLoginAuthenticator::SESSION_JWT_KEY);
         $request->getSession()->invalidate();
 

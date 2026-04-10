@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Cart;
 
 use App\Exception\ApiRequestException;
-use App\Service\Api\GreenGoodiesApiClient;
+use App\HttpClient\GreenGoodies\ProductClient;
 use App\Service\Cart\CartSessionManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,17 +18,19 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  */
 final class ShowAction extends AbstractController
 {
+    public function __construct(
+        private readonly ProductClient $productClient,
+        private readonly CartSessionManager $cartSessionManager,
+    ) {
+    }
+
     #[Route('/mon-panier', name: 'front_cart_show', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function __invoke(
-        Request $request,
-        GreenGoodiesApiClient $apiClient,
-        CartSessionManager $cartSessionManager,
-    ): Response
+    public function __invoke(Request $request): Response
     {
         try {
             // Le panier vit en session, mais les détails produits viennent toujours du catalogue exposé par l'API.
-            $cart = $cartSessionManager->buildView($request->getSession(), $apiClient->listProducts());
+            $cart = $this->cartSessionManager->buildView($request->getSession(), $this->productClient->listProducts());
         } catch (ApiRequestException $exception) {
             // Un échec technique garde l'écran accessible avec un panier vide de secours.
             $this->addFlash('error', $exception->getMessage());

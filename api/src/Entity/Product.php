@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use App\ApiState\Product\MerchantProductsProvider;
 use App\ApiState\Product\ProductProcessor;
@@ -28,7 +29,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new Get(
-            normalizationContext: ['groups' => ['product:read', 'brand:read']],
+            normalizationContext: ['groups' => ['product:read']],
             openapi: new OpenApiOperation(
                 tags: ['Catalog'],
                 summary: 'Voir un produit',
@@ -36,7 +37,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             ),
         ),
         new GetCollection(
-            normalizationContext: ['groups' => ['product:read', 'brand:read']],
+            normalizationContext: ['groups' => ['product:read']],
             openapi: new OpenApiOperation(
                 tags: ['Catalog'],
                 summary: 'Lister les produits du catalogue',
@@ -45,7 +46,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new GetCollection(
             uriTemplate: '/merchant/products',
-            normalizationContext: ['groups' => ['product:read', 'brand:read']],
+            normalizationContext: ['groups' => ['product:read']],
             security: "is_granted('ROLE_MERCHANT')",
             provider: MerchantProductsProvider::class,
             openapi: new OpenApiOperation(
@@ -57,13 +58,25 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Post(
             denormalizationContext: ['groups' => ['product:write']],
-            normalizationContext: ['groups' => ['product:read', 'brand:read']],
+            normalizationContext: ['groups' => ['product:read']],
             security: "is_granted('ROLE_MERCHANT')",
             processor: ProductProcessor::class,
             openapi: new OpenApiOperation(
                 tags: ['Catalog'],
                 summary: 'Créer un produit',
                 description: 'Ajoute un produit pour l’utilisateur authentifié côté front.',
+                security: [['JWT' => []]],
+            ),
+        ),
+        new Put(
+            denormalizationContext: ['groups' => ['product:write']],
+            normalizationContext: ['groups' => ['product:read']],
+            security: "is_granted('ROLE_MERCHANT')",
+            processor: ProductProcessor::class,
+            openapi: new OpenApiOperation(
+                tags: ['Catalog'],
+                summary: 'Modifier un produit',
+                description: 'Met à jour un produit appartenant au commerçant authentifié.',
                 security: [['JWT' => []]],
             ),
         ),
@@ -94,10 +107,10 @@ class Product
     private ?Merchant $seller = null;
 
     #[Groups(['product:read', 'product:write'])]
-    #[ORM\ManyToOne(inversedBy: 'products')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')]
-    #[Assert\NotNull]
-    private ?Brand $brand = null;
+    #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
+    private string $brand = '';
 
     #[Groups(['product:read', 'product:write'])]
     #[ORM\Column(length: 255)]
@@ -190,29 +203,22 @@ class Product
         return $this->assignSeller($seller);
     }
 
-    public function getBrand(): ?Brand
+    public function getBrand(): string
     {
         return $this->brand;
     }
 
-    public function changeBrand(Brand $brand): self
+    public function changeBrand(string $brand): self
     {
-        // La marque est obligatoire sur chaque produit pour répondre au besoin de référencement.
-        $this->brand = $brand;
+        // La marque est désormais une simple donnée textuelle portée directement par le produit.
+        $this->brand = trim($brand);
         $this->touch();
 
         return $this;
     }
 
-    public function setBrand(?Brand $brand): self
+    public function setBrand(string $brand): self
     {
-        if ($brand === null) {
-            $this->brand = null;
-            $this->touch();
-
-            return $this;
-        }
-
         return $this->changeBrand($brand);
     }
 

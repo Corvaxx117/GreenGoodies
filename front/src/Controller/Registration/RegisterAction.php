@@ -6,7 +6,7 @@ namespace App\Controller\Registration;
 
 use App\Exception\ApiRequestException;
 use App\Form\RegistrationFormType;
-use App\Service\Api\GreenGoodiesApiClient;
+use App\HttpClient\GreenGoodies\UserClient;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,10 +18,16 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class RegisterAction extends AbstractController
 {
+    public function __construct(
+        private readonly UserClient $userClient,
+        private readonly FormFactoryInterface $formFactory,
+    ) {
+    }
+
     #[Route('/inscription', name: 'front_register', methods: ['GET', 'POST'])]
-    public function __invoke(Request $request, GreenGoodiesApiClient $apiClient, FormFactoryInterface $formFactory): Response
+    public function __invoke(Request $request): Response
     {
-        $form = $formFactory->createNamed('', RegistrationFormType::class);
+        $form = $this->formFactory->createNamed('', RegistrationFormType::class);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -29,7 +35,8 @@ final class RegisterAction extends AbstractController
 
             try {
                 // Le front transmet uniquement les données validées du formulaire à la route API dédiée.
-                $apiClient->register([
+                $this->userClient->register([
+                    'accountType' => $data['accountType'],
                     'firstName' => $data['firstName'],
                     'lastName' => $data['lastName'],
                     'email' => $data['email'],

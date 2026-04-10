@@ -22,8 +22,7 @@ final readonly class GreenGoodiesOpenApiFactory implements OpenApiFactoryInterfa
 {
     public function __construct(
         private OpenApiFactoryInterface $decorated,
-    ) {
-    }
+    ) {}
 
     public function __invoke(array $context = []): OpenApi
     {
@@ -34,8 +33,6 @@ final readonly class GreenGoodiesOpenApiFactory implements OpenApiFactoryInterfa
             $openApi->getInfo()
                 ->withSummary('API REST GreenGoodies')
                 ->withDescription(<<<'MARKDOWN'
-API REST de GreenGoodies.
-
 - Swagger UI : `/api/docs`
 - Spécification OpenAPI JSON : `/api/docs.jsonopenapi`
 - Authentification front : JWT Bearer obtenu via `/auth`

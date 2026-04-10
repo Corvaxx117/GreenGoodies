@@ -15,7 +15,7 @@ final class AccountProductView
 
     public string $name = '';
 
-    public string $brandName = '';
+    public string $brand = '';
 
     public string $imagePath = '';
 
@@ -29,7 +29,7 @@ final class AccountProductView
         $view = new self();
         $view->slug = $product->getSlug();
         $view->name = $product->getName();
-        $view->brandName = $product->getBrand()?->getName() ?? '';
+        $view->brand = $product->getBrand();
         $view->imagePath = $product->getImagePath();
         $view->priceCents = $product->getPriceCents();
 

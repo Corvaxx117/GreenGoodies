@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Home;
 
 use App\Exception\ApiRequestException;
-use App\Service\Api\GreenGoodiesApiClient;
+use App\HttpClient\GreenGoodies\ProductClient;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -15,15 +15,20 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class IndexAction extends AbstractController
 {
+    public function __construct(
+        private readonly ProductClient $productClient,
+    ) {
+    }
+
     #[Route('/', name: 'front_home', methods: ['GET'])]
-    public function __invoke(GreenGoodiesApiClient $apiClient): Response
+    public function __invoke(): Response
     {
         $products = [];
         $catalogUnavailable = false;
 
         try {
             // Le front n'accède jamais à la base : le catalogue est toujours récupéré via l'API REST.
-            $products = $apiClient->listProducts();
+            $products = $this->productClient->listProducts();
         } catch (ApiRequestException $exception) {
             // En cas de panne API, la page reste affichable avec un état vide et un message explicite.
             $catalogUnavailable = true;

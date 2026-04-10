@@ -6,8 +6,8 @@ namespace App\Controller\Account;
 
 use App\Controller\Shared\UsesApiSessionTrait;
 use App\Exception\ApiRequestException;
+use App\HttpClient\GreenGoodies\UserClient;
 use App\Security\FrontAuthenticationManager;
-use App\Service\Api\GreenGoodiesApiClient;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,13 +21,15 @@ final class ToggleApiAccessAction extends AbstractController
 {
     use UsesApiSessionTrait;
 
+    public function __construct(
+        private readonly UserClient $userClient,
+        private readonly FrontAuthenticationManager $frontAuthenticationManager,
+    ) {
+    }
+
     #[Route('/mon-compte/acces-api', name: 'front_account_api_access_toggle', methods: ['POST'])]
-    #[IsGranted('ROLE_USER')]
-    public function __invoke(
-        Request $request,
-        GreenGoodiesApiClient $apiClient,
-        FrontAuthenticationManager $frontAuthenticationManager,
-    ): Response
+    #[IsGranted('ROLE_MERCHANT')]
+    public function __invoke(Request $request): Response
     {
         // L'activation de clé API est protégée côté front par CSRF avant tout appel HTTP.
         if (!$this->isCsrfTokenValid('front_account_api_access', (string) $request->request->get('_token'))) {
@@ -39,7 +41,7 @@ final class ToggleApiAccessAction extends AbstractController
         $jwt = $this->getJwtFromSession($request);
 
         if ($jwt === null) {
-            return $this->redirectToLogin($request, $frontAuthenticationManager);
+            return $this->redirectToLogin($request, $this->frontAuthenticationManager);
         }
 
         $enabled = $request->request->getBoolean('enabled');
@@ -47,8 +49,8 @@ final class ToggleApiAccessAction extends AbstractController
         try {
             // Le booléen courant détermine si l'on active une nouvelle clé ou si l'on désactive l'accès existant.
             $response = $enabled
-                ? $apiClient->deactivateApiAccess($jwt)
-                : $apiClient->activateApiAccess($jwt);
+                ? $this->userClient->deactivateApiAccess($jwt)
+                : $this->userClient->activateApiAccess($jwt);
 
             $message = (string) ($response['message'] ?? ($enabled ? 'Accès API désactivé.' : 'Accès API activé.'));
 
@@ -59,7 +61,7 @@ final class ToggleApiAccessAction extends AbstractController
             $this->addFlash('success', $message);
         } catch (ApiRequestException $exception) {
             if ($exception->getStatusCode() === Response::HTTP_UNAUTHORIZED) {
-                return $this->redirectToLogin($request, $frontAuthenticationManager);
+                return $this->redirectToLogin($request, $this->frontAuthenticationManager);
             }
 
             $this->addFlash('error', $exception->getMessage());
