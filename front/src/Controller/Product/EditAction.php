@@ -16,9 +16,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * Affiche le formulaire d'ajout de produit puis délègue la persistance à l'API.
+ * Affiche le formulaire d'édition produit puis délègue la mise à jour à l'API REST.
  */
-final class NewAction extends AbstractController
+final class EditAction extends AbstractController
 {
     public function __construct(
         private readonly ProductClient $productClient,
@@ -26,18 +26,33 @@ final class NewAction extends AbstractController
     ) {
     }
 
-    #[Route('/mes-produits/nouveau', name: 'front_product_new', methods: ['GET', 'POST'])]
+    #[Route('/mes-produits/{slug}/modifier', name: 'front_product_edit', methods: ['GET', 'POST'])]
     #[IsGranted('ROLE_MERCHANT')]
-    public function __invoke(Request $request): Response
+    public function __invoke(string $slug, Request $request): Response
     {
-        $form = $this->formFactory->createNamed('', ProductFormType::class);
+        try {
+            $product = $this->productClient->getProduct($slug);
+        } catch (ApiRequestException $exception) {
+            $this->addFlash('error', $exception->getMessage());
+
+            return $this->redirectToRoute('front_account_show');
+        }
+
+        $form = $this->formFactory->createNamed('', ProductFormType::class, [
+            'brand' => (string) ($product['brand'] ?? ''),
+            'name' => (string) ($product['name'] ?? ''),
+            'slug' => (string) ($product['slug'] ?? $slug),
+            'shortDescription' => (string) ($product['shortDescription'] ?? ''),
+            'description' => (string) ($product['description'] ?? ''),
+            'priceCents' => (int) ($product['priceCents'] ?? 0),
+            'imagePath' => (string) ($product['imagePath'] ?? ''),
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $jwt = (string) $request->getSession()->get(ApiLoginAuthenticator::SESSION_JWT_KEY, '');
 
             if ($jwt === '') {
-                // Sans JWT conservé en session, le front ne peut pas persister un produit côté API.
                 $this->addFlash('error', 'Votre session a expiré. Merci de vous reconnecter.');
 
                 return $this->redirectToRoute('front_login');
@@ -46,7 +61,7 @@ final class NewAction extends AbstractController
             try {
                 $data = $form->getData();
 
-                // Le payload front est normalisé avant d'être envoyé tel quel à l'API Platform.
+                // Le payload reste aligné sur le contrat de l'API pour la création et la mise à jour.
                 $payload = [
                     'brand' => trim((string) ($data['brand'] ?? '')),
                     'name' => trim((string) ($data['name'] ?? '')),
@@ -57,24 +72,13 @@ final class NewAction extends AbstractController
                     'imagePath' => trim((string) ($data['imagePath'] ?? '')),
                 ];
 
-                $product = $this->productClient->createProduct($payload, $jwt);
-                $slug = is_string($product['slug'] ?? null) ? $product['slug'] : null;
+                $updatedProduct = $this->productClient->updateProduct($slug, $payload, $jwt);
+                $updatedSlug = is_string($updatedProduct['slug'] ?? null) ? $updatedProduct['slug'] : $slug;
 
-                // Certaines réponses API Platform exposent l'IRI sans champ slug direct.
-                if (($slug === null || $slug === '') && isset($product['@id']) && is_string($product['@id'])) {
-                    $slug = basename($product['@id']);
-                }
-
-                if ($slug === null || $slug === '') {
-                    $this->addFlash('error', 'Le produit a été créé, mais la réponse API ne contient pas de slug exploitable.');
-
-                    return $this->redirectToRoute('front_product_new');
-                }
-
-                $this->addFlash('success', 'Produit ajouté avec succès.');
+                $this->addFlash('success', 'Produit mis à jour avec succès.');
 
                 return $this->redirectToRoute('front_product_show', [
-                    'slug' => $slug,
+                    'slug' => $updatedSlug,
                 ]);
             } catch (ApiRequestException $exception) {
                 $this->addFlash('error', $exception->getMessage());
@@ -83,9 +87,9 @@ final class NewAction extends AbstractController
 
         return $this->render('dashboard/product/new.html.twig', [
             'productForm' => $form,
-            'pageTitle' => 'Ajouter un produit',
-            'pageIntro' => 'Le formulaire front enverra les données à l’API REST pour la persistance.',
-            'submitLabel' => 'Publier le produit',
+            'pageTitle' => 'Modifier un produit',
+            'pageIntro' => 'Le formulaire front enverra les données à l’API REST pour mettre à jour votre produit.',
+            'submitLabel' => 'Enregistrer les modifications',
         ]);
     }
 }

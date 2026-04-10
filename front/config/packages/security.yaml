@@ -18,6 +18,7 @@ security:
                 target: front_home
 
     access_control:
-        - { path: ^/mes-produits/nouveau, roles: ROLE_USER }
+        - { path: ^/mes-produits/nouveau, roles: ROLE_MERCHANT }
+        - { path: ^/mon-compte/acces-api, roles: ROLE_MERCHANT }
         - { path: ^/mon-panier, roles: ROLE_USER }
         - { path: ^/mon-compte, roles: ROLE_USER }

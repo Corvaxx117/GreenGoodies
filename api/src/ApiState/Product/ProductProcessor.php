@@ -10,6 +10,7 @@ use App\Entity\Merchant;
 use App\Entity\Product;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -36,7 +37,14 @@ final readonly class ProductProcessor implements ProcessorInterface
         $user = $this->security->getUser();
 
         if (!$user instanceof Merchant) {
-            throw new AccessDeniedException('Vous devez être connecté pour ajouter un produit.');
+            throw new AccessDeniedException('Vous devez être connecté avec un compte commerçant pour gérer un produit.');
+        }
+
+        // Lors d'une mise à jour, le produit existant doit déjà appartenir au commerçant authentifié.
+        if ($data->getId() !== null) {
+            if (!$data->getSeller() instanceof Merchant || $data->getSeller()->getId() !== $user->getId()) {
+                throw new AccessDeniedHttpException('Vous ne pouvez modifier que vos propres produits.');
+            }
         }
 
         // Le vendeur est déduit du JWT si le front ne l'a pas fourni explicitement.

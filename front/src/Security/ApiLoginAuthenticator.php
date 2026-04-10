@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Security;
 
 use App\Exception\ApiRequestException;
-use App\Service\Api\GreenGoodiesApiClient;
+use App\HttpClient\GreenGoodies\UserClient;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,9 +27,10 @@ final class ApiLoginAuthenticator extends AbstractLoginFormAuthenticator
     public const SESSION_JWT_KEY = 'front.api_jwt';
 
     public function __construct(
-        private readonly GreenGoodiesApiClient $apiClient,
+        private readonly UserClient $userClient,
         private readonly UrlGeneratorInterface $urlGenerator,
-    ) {}
+    ) {
+    }
 
     // Le front ne gère pas de formulaire de connexion classique, mais une route dédiée qui reçoit les données du formulaire et les transmet à l'API.
     public function supports(Request $request): bool
@@ -56,7 +57,7 @@ final class ApiLoginAuthenticator extends AbstractLoginFormAuthenticator
         $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $email);
 
         try {
-            $authentication = $this->apiClient->authenticate($email, $password);
+            $authentication = $this->userClient->authenticate($email, $password);
         } catch (ApiRequestException $exception) {
             // Seul un 401 correspond à de mauvais identifiants ; le reste est un problème technique.
             if ($exception->getStatusCode() === Response::HTTP_UNAUTHORIZED) {

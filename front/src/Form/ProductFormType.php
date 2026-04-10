@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Form;
 
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -20,24 +19,10 @@ final class ProductFormType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $brandChoices = [];
-
-        // Les marques exposées par l'API sont converties en choix Symfony avec leur IRI comme valeur.
-        foreach ($options['brands'] as $brand) {
-            if (!is_array($brand) || !isset($brand['name'])) {
-                continue;
-            }
-
-            $brandName = (string) $brand['name'];
-            $brandChoices[$brandName] = sprintf('/api/brands/%s', rawurlencode($brandName));
-        }
-
         $builder
-            ->add('brand', ChoiceType::class, [
+            ->add('brand', TextType::class, [
                 'label' => 'Marque',
-                'choices' => $brandChoices,
-                'placeholder' => 'Sélectionnez une marque',
-                'constraints' => [new Assert\NotBlank()],
+                'constraints' => [new Assert\NotBlank(), new Assert\Length(max: 255)],
             ])
             ->add('name', TextType::class, [
                 'label' => 'Nom du produit',
@@ -68,13 +53,9 @@ final class ProductFormType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        // Le formulaire dépend d'une liste de marques injectée au moment du rendu.
         $resolver->setDefaults([
             'csrf_protection' => true,
             'csrf_token_id' => 'front_product',
-            'brands' => [],
         ]);
-
-        $resolver->setAllowedTypes('brands', 'array');
     }
 }

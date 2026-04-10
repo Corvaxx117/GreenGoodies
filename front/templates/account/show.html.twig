@@ -40,57 +40,64 @@
                     {% endif %}
                 </section>
 
-                <section class="account-card">
-                    <h2 class="account-card__title">Mon accès API</h2>
+                {% if is_granted('ROLE_MERCHANT') %}
+                    <section class="account-card">
+                        <h2 class="account-card__title">Mon accès API</h2>
 
-                    {% if account.apiAccessEnabled and account.apiKeyPrefix %}
-                        <p class="account-card__hint">Clé active : {{ account.apiKeyPrefix }}…</p>
-                    {% endif %}
+                        {% if account.apiAccessEnabled and account.apiKeyPrefix %}
+                            <p class="account-card__hint">Clé active : {{ account.apiKeyPrefix }}…</p>
+                        {% endif %}
 
-                    <form method="post" action="{{ path('front_account_api_access_toggle') }}">
-                        <input type="hidden" name="_token" value="{{ csrf_token('front_account_api_access') }}">
-                        <input type="hidden" name="enabled" value="{{ account.apiAccessEnabled ? '1' : '0' }}">
-                        <button class="dashboard-page__primary-button dashboard-page__primary-button--compact" type="submit">
-                            {{ account.apiAccessEnabled ? 'Désactiver mon accès API' : 'Activer mon accès API' }}
-                        </button>
-                    </form>
-                </section>
+                        <form method="post" action="{{ path('front_account_api_access_toggle') }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('front_account_api_access') }}">
+                            <input type="hidden" name="enabled" value="{{ account.apiAccessEnabled ? '1' : '0' }}">
+                            <button class="dashboard-page__primary-button dashboard-page__primary-button--compact" type="submit">
+                                {{ account.apiAccessEnabled ? 'Désactiver mon accès API' : 'Activer mon accès API' }}
+                            </button>
+                        </form>
+                    </section>
 
-                <section class="account-card">
-                    <h2 class="account-card__title">Mes produits</h2>
+                    <section class="account-card">
+                        <h2 class="account-card__title">Mes produits</h2>
 
-                    {% if account.products is not empty %}
-                        <div class="account-products">
-                            {% for product in account.products %}
-                                <article class="account-products__item">
-                                    <a class="account-products__media" href="{{ path('front_product_show', { slug: product.slug }) }}">
-                                        <img src="{{ asset(product.imagePath) }}" alt="{{ product.name }}">
-                                    </a>
+                        {% if account.products is not empty %}
+                            <div class="account-products">
+                                {% for product in account.products %}
+                                    <article class="account-products__item">
+                                        <a class="account-products__media" href="{{ path('front_product_show', { slug: product.slug }) }}">
+                                            <img src="{{ asset(product.imagePath) }}" alt="{{ product.name }}">
+                                        </a>
 
-                                    <div class="account-products__content">
-                                        <p class="account-products__brand">{{ product.brandName }}</p>
-                                        <h3 class="account-products__title">
-                                            <a href="{{ path('front_product_show', { slug: product.slug }) }}">{{ product.name }}</a>
-                                        </h3>
-                                        <p class="account-products__price">
-                                            {% if product.priceCents is divisible by(100) %}
-                                                {{ (product.priceCents / 100)|number_format(0, ',', ' ') }}€
-                                            {% else %}
-                                                {{ (product.priceCents / 100)|number_format(2, ',', ' ') }}€
-                                            {% endif %}
-                                        </p>
-                                    </div>
-                                </article>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="account-card__hint">Ajoutez un nouveau produit à votre catalogue personnel.</p>
-                    {% endif %}
+                                        <div class="account-products__content">
+                                            <p class="account-products__brand">{{ product.brand }}</p>
+                                            <h3 class="account-products__title">
+                                                <a href="{{ path('front_product_show', { slug: product.slug }) }}">{{ product.name }}</a>
+                                            </h3>
+                                            <p class="account-products__price">
+                                                {% if product.priceCents is divisible by(100) %}
+                                                    {{ (product.priceCents / 100)|number_format(0, ',', ' ') }}€
+                                                {% else %}
+                                                    {{ (product.priceCents / 100)|number_format(2, ',', ' ') }}€
+                                                {% endif %}
+                                            </p>
 
-                    <a class="dashboard-page__primary-button dashboard-page__primary-button--compact" href="{{ path('front_product_new') }}">
-                        Ajouter un produit
-                    </a>
-                </section>
+                                            <div class="account-products__actions">
+                                                <a class="account-products__link" href="{{ path('front_product_show', { slug: product.slug }) }}">Voir le produit</a>
+                                                <a class="account-products__link" href="{{ path('front_product_edit', { slug: product.slug }) }}">Modifier</a>
+                                            </div>
+                                        </div>
+                                    </article>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="account-card__hint">Ajoutez un nouveau produit à votre catalogue personnel.</p>
+                        {% endif %}
+
+                        <a class="dashboard-page__primary-button dashboard-page__primary-button--compact" href="{{ path('front_product_new') }}">
+                            Ajouter un produit
+                        </a>
+                    </section>
+                {% endif %}
 
                 <section class="account-card">
                     <form method="post" action="{{ path('front_account_delete') }}">

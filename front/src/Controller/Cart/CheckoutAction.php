@@ -6,8 +6,8 @@ namespace App\Controller\Cart;
 
 use App\Controller\Shared\UsesApiSessionTrait;
 use App\Exception\ApiRequestException;
+use App\HttpClient\GreenGoodies\OrderClient;
 use App\Security\FrontAuthenticationManager;
-use App\Service\Api\GreenGoodiesApiClient;
 use App\Service\Cart\CartSessionManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,14 +22,16 @@ final class CheckoutAction extends AbstractController
 {
     use UsesApiSessionTrait;
 
+    public function __construct(
+        private readonly OrderClient $orderClient,
+        private readonly FrontAuthenticationManager $frontAuthenticationManager,
+        private readonly CartSessionManager $cartSessionManager,
+    ) {
+    }
+
     #[Route('/mon-panier/valider', name: 'front_cart_checkout', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function __invoke(
-        Request $request,
-        GreenGoodiesApiClient $apiClient,
-        FrontAuthenticationManager $frontAuthenticationManager,
-        CartSessionManager $cartSessionManager,
-    ): Response
+    public function __invoke(Request $request): Response
     {
         // La validation de commande envoie le panier session à l'API pour créer une commande réelle.
         if (!$this->isCsrfTokenValid('front_cart_checkout', (string) $request->request->get('_token'))) {
@@ -41,18 +43,18 @@ final class CheckoutAction extends AbstractController
         $jwt = $this->getJwtFromSession($request);
 
         if ($jwt === null) {
-            return $this->redirectToLogin($request, $frontAuthenticationManager);
+            return $this->redirectToLogin($request, $this->frontAuthenticationManager);
         }
 
-        if (!$cartSessionManager->hasItems($request->getSession())) {
+        if (!$this->cartSessionManager->hasItems($request->getSession())) {
             $this->addFlash('error', 'Votre panier est vide.');
 
             return $this->redirectToRoute('front_cart_show');
         }
 
         try {
-            $response = $apiClient->createOrder(
-                ['items' => $cartSessionManager->toOrderPayload($request->getSession())],
+            $response = $this->orderClient->createOrder(
+                ['items' => $this->cartSessionManager->toOrderPayload($request->getSession())],
                 $jwt,
             );
             $message = (string) ($response['message'] ?? 'Commande validée.');
@@ -61,11 +63,11 @@ final class CheckoutAction extends AbstractController
                 $message = sprintf('%s Référence : %s.', $message, $response['reference']);
             }
 
-            $cartSessionManager->clear($request->getSession());
+            $this->cartSessionManager->clear($request->getSession());
             $this->addFlash('success', $message);
         } catch (ApiRequestException $exception) {
             if ($exception->getStatusCode() === Response::HTTP_UNAUTHORIZED) {
-                return $this->redirectToLogin($request, $frontAuthenticationManager);
+                return $this->redirectToLogin($request, $this->frontAuthenticationManager);
             }
 
             $this->addFlash('error', $exception->getMessage());

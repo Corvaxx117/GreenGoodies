@@ -34,7 +34,7 @@
                     <div class="product-card__content">
                         <h2 class="product-card__title">{{ product.name }}</h2>
                         <p class="product-card__description">{{ product.shortDescription }}</p>
-                        <p class="product-card__description product-card__brand">{{ product.brand.name }}</p>
+                        <p class="product-card__description product-card__brand">{{ product.brand }}</p>
                         <p class="product-card__price">
                             {% if product.priceCents is divisible by(100) %}
                                 {{ (product.priceCents / 100)|number_format(0, ',', ' ') }}€

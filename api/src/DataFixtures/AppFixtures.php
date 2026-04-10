@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\DataFixtures;
 
-use App\Entity\Brand;
 use App\Entity\CustomerOrder;
 use App\Entity\Merchant;
 use App\Entity\Product;
@@ -25,15 +24,7 @@ final class AppFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
-        $brands = [];
         $products = [];
-
-        // Les marques sont créées avant les produits pour disposer d'un référentiel stable.
-        foreach (['Eco Panda', 'Necessaire', 'Georganics', 'Terra', 'Earthly'] as $brandName) {
-            $brand = new Brand($brandName);
-            $manager->persist($brand);
-            $brands[$brandName] = $brand;
-        }
 
         $merchant = new Merchant('merchant@greengoodies.test', 'Aurelie', 'Martin');
         $merchant
@@ -52,7 +43,7 @@ final class AppFixtures extends Fixture
         foreach ($this->catalog() as $productData) {
             $product = new Product();
             $product
-                ->changeBrand($brands[$productData['brand']])
+                ->changeBrand($productData['brand'])
                 ->rename($productData['name'])
                 ->changeSlug($productData['slug'])
                 ->changeShortDescription($productData['shortDescription'])

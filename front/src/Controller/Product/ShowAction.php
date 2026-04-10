@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Product;
 
 use App\Exception\ApiRequestException;
-use App\Service\Api\GreenGoodiesApiClient;
+use App\HttpClient\GreenGoodies\ProductClient;
 use App\Service\Cart\CartSessionManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,17 +17,18 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class ShowAction extends AbstractController
 {
+    public function __construct(
+        private readonly ProductClient $productClient,
+        private readonly CartSessionManager $cartSessionManager,
+    ) {
+    }
+
     #[Route('/produits/{slug}', name: 'front_product_show', methods: ['GET'])]
-    public function __invoke(
-        string $slug,
-        Request $request,
-        GreenGoodiesApiClient $apiClient,
-        CartSessionManager $cartSessionManager,
-    ): Response
+    public function __invoke(string $slug, Request $request): Response
     {
         try {
             // Le détail produit vient du catalogue exposé par l'API.
-            $product = $apiClient->getProduct($slug);
+            $product = $this->productClient->getProduct($slug);
         } catch (ApiRequestException $exception) {
             if ($exception->getStatusCode() === Response::HTTP_NOT_FOUND) {
                 throw $this->createNotFoundException('Produit introuvable.');
@@ -42,7 +43,7 @@ final class ShowAction extends AbstractController
         $currentQuantity = 0;
 
         if ($this->getUser() !== null) {
-            $currentQuantity = $cartSessionManager->getQuantity($request->getSession(), $slug);
+            $currentQuantity = $this->cartSessionManager->getQuantity($request->getSession(), $slug);
         }
 
         return $this->render('product/show.html.twig', [
