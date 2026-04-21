@@ -31,7 +31,7 @@ final class MerchantApiKeyAuthenticator extends AbstractAuthenticator implements
     public function supports(Request $request): ?bool
     {
         // Cet authenticator ne s'applique qu'au sous-ensemble de routes réservé aux partenaires/commerçants.
-        return str_starts_with($request->getPathInfo(), '/api/merchant');
+        return str_starts_with($request->getPathInfo(), '/api/products/mine');
     }
 
     public function authenticate(Request $request): SelfValidatingPassport

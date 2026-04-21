@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
+use App\ApiResource\Order\CreateOrderInput;
+use App\ApiState\Order\CreateOrderProcessor;
+use App\ApiState\Order\CurrentUserOrdersProvider;
 use App\Entity\Traits\TimestampableTrait;
 use App\Enum\OrderStatus;
 use App\Repository\CustomerOrderRepository;
@@ -11,22 +20,69 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 /**
  * Représente une commande utilisateur persistée, validée ou annulée.
  */
+#[ApiResource(
+    shortName: 'Order',
+    normalizationContext: ['groups' => ['order:read']],
+    operations: [
+        new Get(
+            uriTemplate: '/orders/{reference}',
+            security: "object.getUser() == user",
+            openapi: new OpenApiOperation(
+                tags: ['Orders'],
+                summary: 'Voir une commande',
+                description: 'Retourne une commande du compte authentifié à partir de sa référence.',
+                security: [['JWT' => []]],
+            ),
+        ),
+        new GetCollection(
+            uriTemplate: '/users/me/orders',
+            provider: CurrentUserOrdersProvider::class,
+            security: "is_granted('ROLE_USER')",
+            openapi: new OpenApiOperation(
+                tags: ['Orders'],
+                summary: 'Lister les commandes du compte courant',
+                description: 'Retourne les commandes de l’utilisateur authentifié.',
+                security: [['JWT' => []]],
+            ),
+        ),
+        new Post(
+            uriTemplate: '/orders',
+            input: CreateOrderInput::class,
+            output: self::class,
+            read: false,
+            processor: CreateOrderProcessor::class,
+            security: "is_granted('ROLE_USER')",
+            openapi: new OpenApiOperation(
+                tags: ['Orders'],
+                summary: 'Créer une commande',
+                description: 'Transforme le panier session du front en commande validée côté API.',
+                security: [['JWT' => []]],
+            ),
+        ),
+    ],
+)]
 #[ORM\Entity(repositoryClass: CustomerOrderRepository::class)]
 #[ORM\Table(name: 'customer_orders', indexes: [new ORM\Index(name: 'idx_customer_order_status', columns: ['status'])])]
 #[ORM\HasLifecycleCallbacks]
 class CustomerOrder
 {
-    use TimestampableTrait;
+    use TimestampableTrait {
+        getCreatedAt as private getTimestampCreatedAt;
+    }
 
+    #[ApiProperty(identifier: false)]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    #[Groups(['order:read'])]
+    #[ApiProperty(identifier: true)]
     #[ORM\Column(length: 32, unique: true)]
     private string $reference;
 
@@ -34,18 +90,22 @@ class CustomerOrder
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private User $user;
 
+    #[Groups(['order:read'])]
     #[ORM\Column(enumType: OrderStatus::class, length: 16)]
     private OrderStatus $status = OrderStatus::Draft;
 
+    #[Groups(['order:read'])]
     #[ORM\Column]
     private int $totalCents = 0;
 
+    #[Groups(['order:read'])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $validatedAt = null;
 
     /**
      * @var Collection<int, OrderItem>
      */
+    #[Groups(['order:read'])]
     #[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderItem::class, cascade: ['persist'], orphanRemoval: true)]
     private Collection $items;
 
@@ -80,6 +140,12 @@ class CustomerOrder
     public function getTotalCents(): int
     {
         return $this->totalCents;
+    }
+
+    #[Groups(['order:read'])]
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->getTimestampCreatedAt();
     }
 
     public function getValidatedAt(): ?\DateTimeImmutable

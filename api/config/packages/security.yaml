@@ -23,7 +23,7 @@ security:
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
         merchant:
-            pattern: ^/api/merchant
+            pattern: ^/api/products/mine
             stateless: true
             provider: app_user_provider
             custom_authenticators:
@@ -37,9 +37,9 @@ security:
 
     access_control:
         - { path: ^/auth, roles: PUBLIC_ACCESS }
-        - { path: ^/api/register, roles: PUBLIC_ACCESS }
+        - { path: ^/api/users$, roles: PUBLIC_ACCESS }
         - { path: ^/api$, roles: PUBLIC_ACCESS }
-        - { path: ^/api/merchant, roles: ROLE_MERCHANT }
+        - { path: ^/api/products/mine, roles: ROLE_MERCHANT }
 
 when@test:
     security:

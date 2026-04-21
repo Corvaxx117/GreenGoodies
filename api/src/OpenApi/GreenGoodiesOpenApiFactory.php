@@ -36,7 +36,7 @@ final readonly class GreenGoodiesOpenApiFactory implements OpenApiFactoryInterfa
 - Swagger UI : `/api/docs`
 - Spécification OpenAPI JSON : `/api/docs.jsonopenapi`
 - Authentification front : JWT Bearer obtenu via `/auth`
-- Authentification commerçant : clé API `X-API-Key` pour `/api/merchant/products`
+- Authentification commerçant : clé API `X-API-Key` pour `/api/products/mine`
 MARKDOWN),
         );
 

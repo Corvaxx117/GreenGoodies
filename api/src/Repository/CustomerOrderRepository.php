@@ -6,7 +6,6 @@ namespace App\Repository;
 
 use App\Entity\CustomerOrder;
 use App\Entity\User;
-use App\Enum\OrderStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -25,21 +24,17 @@ final class CustomerOrderRepository extends ServiceEntityRepository
     /**
      * @return list<CustomerOrder>
      */
-    public function findLatestValidatedForUser(User $user, int $limit = 10): array
+    public function findByUser(User $user): array
     {
         /** @var list<CustomerOrder> $orders */
-        // Le compte utilisateur affiche uniquement les commandes déjà validées, triées par date décroissante.
+        // Le compte utilisateur expose l'historique complet du propriétaire, trié du plus récent au plus ancien.
         $orders = $this->createQueryBuilder('customerOrder')
             ->andWhere('customerOrder.user = :user')
-            ->andWhere('customerOrder.status = :status')
             ->setParameter('user', $user)
-            ->setParameter('status', OrderStatus::Validated)
-            ->orderBy('customerOrder.validatedAt', 'DESC')
-            ->setMaxResults($limit)
+            ->orderBy('customerOrder.createdAt', 'DESC')
             ->getQuery()
             ->getResult();
 
         return $orders;
     }
-
 }

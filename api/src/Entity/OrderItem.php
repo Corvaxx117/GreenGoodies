@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Entity\Traits\TimestampableTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -31,16 +32,20 @@ class OrderItem
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Product $product;
 
+    #[Groups(['order:read'])]
     #[ORM\Column(length: 255)]
     private string $productName;
 
+    #[Groups(['order:read'])]
     #[ORM\Column]
     private int $unitPriceCents;
 
+    #[Groups(['order:read'])]
     #[ORM\Column]
     #[Assert\Positive]
     private int $quantity;
 
+    #[Groups(['order:read'])]
     #[ORM\Column]
     private int $lineTotalCents;
 
