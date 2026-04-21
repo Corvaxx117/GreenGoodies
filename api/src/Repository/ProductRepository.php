@@ -24,7 +24,7 @@ final class ProductRepository extends ServiceEntityRepository
     /**
      * @return list<Product>
      */
-    public function findPublishedCatalog(int $limit = 12): array
+    public function findPublishedCatalog(): array
     {
         /** @var list<Product> $products */
         // Le catalogue public n'expose que les produits publiés.
@@ -32,11 +32,19 @@ final class ProductRepository extends ServiceEntityRepository
             ->andWhere('product.isPublished = :published')
             ->setParameter('published', true)
             ->orderBy('product.createdAt', 'DESC')
-            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
 
         return $products;
+    }
+
+    public function findOneBySlug(string $slug): ?Product
+    {
+        return $this->createQueryBuilder('product')
+            ->andWhere('product.slug = :slug')
+            ->setParameter('slug', $slug)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     public function findOnePublishedBySlug(string $slug): ?Product
@@ -73,15 +81,14 @@ final class ProductRepository extends ServiceEntityRepository
     /**
      * @return list<Product>
      */
-    public function findLatestBySeller(Merchant $seller, int $limit = 8): array
+    public function findBySeller(Merchant $seller): array
     {
         /** @var list<Product> $products */
-        // L'espace compte liste les derniers produits ajoutés par l'utilisateur, publiés ou non.
+        // Le compte commerçant expose l'ensemble des produits du vendeur, publiés ou non.
         $products = $this->createQueryBuilder('product')
             ->andWhere('product.seller = :seller')
             ->setParameter('seller', $seller)
             ->orderBy('product.createdAt', 'DESC')
-            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
 

@@ -7,7 +7,6 @@ namespace App\ApiState\Order;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\Order\CreateOrderInput;
-use App\ApiResource\Order\OrderResult;
 use App\Entity\CustomerOrder;
 use App\Entity\User;
 use App\Repository\ProductRepository;
@@ -29,7 +28,7 @@ final readonly class CreateOrderProcessor implements ProcessorInterface
     ) {
     }
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): OrderResult
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): CustomerOrder
     {
         $user = $this->security->getUser();
 
@@ -65,6 +64,6 @@ final readonly class CreateOrderProcessor implements ProcessorInterface
         $this->entityManager->persist($order);
         $this->entityManager->flush();
 
-        return OrderResult::fromOrder($order);
+        return $order;
     }
 }

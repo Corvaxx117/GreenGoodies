@@ -4,12 +4,24 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
+use App\ApiResource\Auth\RegisterInput;
+use App\ApiState\Account\ActivateApiKeyProcessor;
+use App\ApiState\Account\CurrentUserProvider;
+use App\ApiState\Account\DeactivateApiKeyProcessor;
+use App\ApiState\Account\DeleteCurrentUserProcessor;
+use App\ApiState\Auth\RegisterUserProcessor;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -17,6 +29,83 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Représente un compte client "lambda", racine de l'héritage des utilisateurs applicatifs.
  */
+#[ApiResource(
+    shortName: 'User',
+    normalizationContext: ['groups' => ['user:read']],
+    operations: [
+        new Post(
+            uriTemplate: '/users',
+            input: RegisterInput::class,
+            output: self::class,
+            read: false,
+            processor: RegisterUserProcessor::class,
+            security: "is_granted('PUBLIC_ACCESS')",
+            openapi: new OpenApiOperation(
+                tags: ['Users'],
+                summary: 'Créer un compte',
+                description: 'Inscription d’un utilisateur GreenGoodies.',
+                security: [],
+            ),
+        ),
+        new Get(
+            uriTemplate: '/users/me',
+            provider: CurrentUserProvider::class,
+            security: "is_granted('ROLE_USER')",
+            openapi: new OpenApiOperation(
+                tags: ['Users'],
+                summary: 'Récupérer le profil courant',
+                description: 'Retourne les informations du compte authentifié.',
+                security: [['JWT' => []]],
+            ),
+        ),
+        new Delete(
+            uriTemplate: '/users/me',
+            read: false,
+            deserialize: false,
+            validate: false,
+            output: false,
+            status: 204,
+            processor: DeleteCurrentUserProcessor::class,
+            security: "is_granted('ROLE_USER')",
+            openapi: new OpenApiOperation(
+                tags: ['Users'],
+                summary: 'Supprimer le compte courant',
+                description: 'Supprime le compte authentifié ainsi que ses données associées.',
+                security: [['JWT' => []]],
+            ),
+        ),
+        new Post(
+            uriTemplate: '/users/me/api-key/activate',
+            read: false,
+            input: false,
+            output: self::class,
+            processor: ActivateApiKeyProcessor::class,
+            normalizationContext: ['groups' => ['user:read', 'user:api-key:read']],
+            security: "is_granted('ROLE_MERCHANT')",
+            openapi: new OpenApiOperation(
+                tags: ['Merchant API'],
+                summary: 'Activer la clé API commerçant',
+                description: 'Active l’accès API commerçant et retourne la clé API en clair une seule fois.',
+                security: [['JWT' => []]],
+            ),
+        ),
+        new Post(
+            uriTemplate: '/users/me/api-key/deactivate',
+            read: false,
+            input: false,
+            output: false,
+            status: 204,
+            processor: DeactivateApiKeyProcessor::class,
+            security: "is_granted('ROLE_MERCHANT')",
+            openapi: new OpenApiOperation(
+                tags: ['Merchant API'],
+                summary: 'Désactiver la clé API commerçant',
+                description: 'Désactive l’accès API commerçant du compte authentifié.',
+                security: [['JWT' => []]],
+            ),
+        ),
+    ],
+)]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'users')]
 #[ORM\InheritanceType('SINGLE_TABLE')]
@@ -39,17 +128,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['user:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
     #[Assert\NotBlank]
     #[Assert\Email]
+    #[Groups(['user:read'])]
     private string $email;
 
     /**
      * @var list<string>
      */
     #[ORM\Column]
+    #[Groups(['user:read'])]
     private array $roles = [];
 
     #[ORM\Column]
@@ -58,11 +150,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
     #[Assert\Length(max: 100)]
+    #[Groups(['user:read'])]
     private string $firstName;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
     #[Assert\Length(max: 100)]
+    #[Groups(['user:read'])]
     private string $lastName;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
@@ -73,6 +167,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: CustomerOrder::class, orphanRemoval: true)]
     private Collection $orders;
+
+    private ?string $plainApiKey = null;
 
     /**
      * @param list<string> $roles
@@ -228,9 +324,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return null;
     }
 
+    #[Groups(['user:read'])]
+    public function getApiAccessEnabled(): bool
+    {
+        return $this->isApiAccessEnabled();
+    }
+
+    #[Groups(['user:read'])]
+    public function getApiKeyPrefix(): ?string
+    {
+        return $this->getApiKey()?->getKeyPrefix();
+    }
+
+    #[Groups(['user:read'])]
     public function getAccountType(): string
     {
         return 'customer';
+    }
+
+    public function revealPlainApiKey(?string $plainApiKey): self
+    {
+        $this->plainApiKey = $plainApiKey !== null ? trim($plainApiKey) : null;
+
+        return $this;
+    }
+
+    #[Groups(['user:api-key:read'])]
+    public function getPlainApiKey(): ?string
+    {
+        return $this->plainApiKey;
     }
 
     /**

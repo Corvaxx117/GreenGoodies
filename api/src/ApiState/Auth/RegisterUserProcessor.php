@@ -6,7 +6,6 @@ namespace App\ApiState\Auth;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\ApiResource\Account\CurrentUserView;
 use App\ApiResource\Auth\RegisterInput;
 use App\Entity\Merchant;
 use App\Entity\User;
@@ -17,7 +16,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * Transforme le payload d'inscription en compte persisté puis en vue utilisateur.
+ * Transforme le payload d'inscription en compte persisté.
  */
 final readonly class RegisterUserProcessor implements ProcessorInterface
 {
@@ -28,7 +27,7 @@ final readonly class RegisterUserProcessor implements ProcessorInterface
     ) {
     }
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): CurrentUserView
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): User
     {
         if (!$data instanceof RegisterInput) {
             throw new BadRequestHttpException('Payload d’inscription invalide.');
@@ -50,6 +49,6 @@ final readonly class RegisterUserProcessor implements ProcessorInterface
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        return CurrentUserView::fromUser($user);
+        return $user;
     }
 }

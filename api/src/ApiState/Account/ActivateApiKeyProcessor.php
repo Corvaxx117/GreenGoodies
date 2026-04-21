@@ -6,9 +6,9 @@ namespace App\ApiState\Account;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\ApiResource\Account\ActivateApiKeyResult;
 use App\Entity\ApiKey;
 use App\Entity\Merchant;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -24,7 +24,7 @@ final readonly class ActivateApiKeyProcessor implements ProcessorInterface
     ) {
     }
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): ActivateApiKeyResult
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): User
     {
         $user = $this->security->getUser();
 
@@ -46,6 +46,6 @@ final readonly class ActivateApiKeyProcessor implements ProcessorInterface
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        return new ActivateApiKeyResult('Accès API activé.', $plainKey);
+        return $user->revealPlainApiKey($plainKey);
     }
 }

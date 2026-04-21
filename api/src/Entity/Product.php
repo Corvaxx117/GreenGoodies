@@ -11,8 +11,11 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
+use App\ApiState\Product\CurrentUserProductsProvider;
 use App\ApiState\Product\MerchantProductsProvider;
+use App\ApiState\Product\ProductItemProvider;
 use App\ApiState\Product\ProductProcessor;
+use App\ApiState\Product\PublishedProductsProvider;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\ProductRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -27,17 +30,12 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Représente un produit du catalogue public et du catalogue commerçant.
  */
 #[ApiResource(
+    normalizationContext: ['groups' => ['product:read']],
+    denormalizationContext: ['groups' => ['product:write']],
     operations: [
-        new Get(
-            normalizationContext: ['groups' => ['product:read']],
-            openapi: new OpenApiOperation(
-                tags: ['Catalog'],
-                summary: 'Voir un produit',
-                description: 'Retourne le détail d’un produit publié à partir de son slug.',
-            ),
-        ),
         new GetCollection(
-            normalizationContext: ['groups' => ['product:read']],
+            // Get collection → /api/products
+            provider: PublishedProductsProvider::class,
             openapi: new OpenApiOperation(
                 tags: ['Catalog'],
                 summary: 'Lister les produits du catalogue',
@@ -45,20 +43,38 @@ use Symfony\Component\Validator\Constraints as Assert;
             ),
         ),
         new GetCollection(
-            uriTemplate: '/merchant/products',
-            normalizationContext: ['groups' => ['product:read']],
+            uriTemplate: '/users/me/products',
+            security: "is_granted('ROLE_MERCHANT')",
+            provider: CurrentUserProductsProvider::class,
+            openapi: new OpenApiOperation(
+                tags: ['Catalog'],
+                summary: 'Lister les produits du compte courant',
+                description: 'Retourne les produits du commerçant authentifié côté front.',
+                security: [['JWT' => []]],
+            ),
+        ),
+        new GetCollection(
+            uriTemplate: '/products/mine',
             security: "is_granted('ROLE_MERCHANT')",
             provider: MerchantProductsProvider::class,
             openapi: new OpenApiOperation(
                 tags: ['Merchant API'],
                 summary: 'Lister les produits du commerçant',
-                description: 'Retourne uniquement les produits du propriétaire de la clé API `X-API-Key`.',
+                description: 'Retourne uniquement les produits publiés du propriétaire de la clé API `X-API-Key`.',
                 security: [['merchantApiKey' => []]],
             ),
         ),
+        new Get(
+            // Get item → /api/products/{slug}
+            provider: ProductItemProvider::class,
+            openapi: new OpenApiOperation(
+                tags: ['Catalog'],
+                summary: 'Voir un produit',
+                description: 'Retourne le détail d’un produit publié, ou d’un produit du commerçant authentifié.',
+            ),
+        ),
         new Post(
-            denormalizationContext: ['groups' => ['product:write']],
-            normalizationContext: ['groups' => ['product:read']],
+            // Post collection → /api/products
             security: "is_granted('ROLE_MERCHANT')",
             processor: ProductProcessor::class,
             openapi: new OpenApiOperation(
@@ -69,8 +85,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             ),
         ),
         new Put(
-            denormalizationContext: ['groups' => ['product:write']],
-            normalizationContext: ['groups' => ['product:read']],
+            // Put item → /api/products/{slug}
             security: "is_granted('ROLE_MERCHANT')",
             processor: ProductProcessor::class,
             openapi: new OpenApiOperation(
@@ -210,7 +225,6 @@ class Product
 
     public function changeBrand(string $brand): self
     {
-        // La marque est désormais une simple donnée textuelle portée directement par le produit.
         $this->brand = trim($brand);
         $this->touch();
 
@@ -322,6 +336,12 @@ class Product
     public function isPublished(): bool
     {
         return $this->isPublished;
+    }
+
+    #[Groups(['product:read'])]
+    public function getIsPublished(): bool
+    {
+        return $this->isPublished();
     }
 
     public function publish(): self

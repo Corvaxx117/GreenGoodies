@@ -6,7 +6,6 @@ namespace App\ApiState\Account;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\ApiResource\Shared\MessageResource;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -23,7 +22,7 @@ final readonly class DeleteCurrentUserProcessor implements ProcessorInterface
     ) {
     }
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): MessageResource
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): null
     {
         $user = $this->security->getUser();
 
@@ -35,6 +34,6 @@ final readonly class DeleteCurrentUserProcessor implements ProcessorInterface
         $this->entityManager->remove($user);
         $this->entityManager->flush();
 
-        return new MessageResource('Compte supprimé.');
+        return null;
     }
 }

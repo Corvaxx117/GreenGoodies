@@ -2,34 +2,34 @@
 
 declare(strict_types=1);
 
-namespace App\ApiState\Account;
+namespace App\ApiState\Order;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
-use App\ApiResource\Account\CurrentUserView;
 use App\Entity\User;
+use App\Repository\CustomerOrderRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
- * Résout l'utilisateur courant et le projette dans la vue dédiée au front.
+ * Retourne les commandes du compte courant.
  */
-final readonly class CurrentUserViewProvider implements ProviderInterface
+final readonly class CurrentUserOrdersProvider implements ProviderInterface
 {
     public function __construct(
         private Security $security,
+        private CustomerOrderRepository $customerOrderRepository,
     ) {
     }
 
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): CurrentUserView
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): iterable
     {
-        // Le profil courant ne peut être construit qu'à partir d'un utilisateur authentifié par JWT.
         $user = $this->security->getUser();
 
         if (!$user instanceof User) {
             throw new AccessDeniedException('Authentification requise.');
         }
 
-        return CurrentUserView::fromUser($user);
+        return $this->customerOrderRepository->findByUser($user);
     }
 }
