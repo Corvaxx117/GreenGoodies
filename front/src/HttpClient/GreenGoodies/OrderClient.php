@@ -10,6 +10,18 @@ namespace App\HttpClient\GreenGoodies;
 final class OrderClient extends AbstractGreenGoodiesClient
 {
     /**
+     * Retourne les commandes du compte courant.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listCurrentUserOrders(string $jwt): array
+    {
+        return $this->unwrapCollection($this->request('GET', '/api/users/me/orders', [
+            'headers' => $this->authenticatedHeaders($jwt),
+        ]));
+    }
+
+    /**
      * Crée une commande validée à partir des lignes du panier session envoyées par le front.
      *
      * @param array<string, mixed> $payload

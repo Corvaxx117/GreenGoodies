@@ -827,7 +827,7 @@ a {
 .account-orders__head,
 .account-orders__row {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 0.8fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 0.8fr);
     gap: 1rem;
 }
 
@@ -843,6 +843,31 @@ a {
 
 .account-orders__row + .account-orders__row {
     border-top: 1px solid rgba(47, 45, 40, 0.12);
+}
+
+.account-orders__status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.account-orders__status--validated {
+    background: rgba(116, 155, 91, 0.14);
+    color: #4e6f3e;
+}
+
+.account-orders__status--cancelled {
+    background: rgba(173, 93, 74, 0.14);
+    color: #9b4f3d;
+}
+
+.account-orders__status--draft {
+    background: rgba(135, 115, 89, 0.14);
+    color: #6f5d45;
 }
 
 @media (max-width: 960px) {

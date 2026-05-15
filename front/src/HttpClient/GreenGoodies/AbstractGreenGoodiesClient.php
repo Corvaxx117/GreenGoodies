@@ -19,15 +19,14 @@ abstract class AbstractGreenGoodiesClient
         private readonly HttpClientInterface $httpClient,
         #[Autowire('%env(API_BASE_URL)%')]
         private readonly string $apiBaseUrl,
-    ) {
-    }
+    ) {}
 
     /**
      * Effectue une requête HTTP vers l'API GreenGoodies, gère les erreurs et retourne le payload décodé.
      *
      * @param array<string, mixed> $options
      *
-     * @return array<string, mixed>
+     * @return array<int|string, mixed>
      */
     protected function request(string $method, string $uri, array $options = []): array
     {
@@ -74,7 +73,7 @@ abstract class AbstractGreenGoodiesClient
     /**
      * Extrait un message d'erreur utilisateur à partir du payload de réponse de l'API.
      *
-     * @param array<string, mixed> $payload
+     * @param array<int|string, mixed> $payload
      */
     protected function extractErrorMessage(array $payload, int $statusCode): string
     {
@@ -127,29 +126,41 @@ abstract class AbstractGreenGoodiesClient
     }
 
     /**
-     * Déplie une collection Hydra ou retourne le payload tel quel si ce n'est pas une collection API Platform.
+     * Déplie une collection Hydra ou une liste JSON brute.
      *
-     * @param array<string, mixed> $payload
+     * @param array<int|string, mixed> $payload
      *
      * @return list<array<string, mixed>>
      */
     protected function unwrapCollection(array $payload): array
     {
-        if (isset($payload['member']) && is_array($payload['member'])) {
+        // L'API peut retourner une liste JSON brute ou une collection Hydra encadrée d'autres métadonnées.
+        if (array_is_list($payload)) {
             /** @var list<array<string, mixed>> $member */
             $member = array_values(array_filter(
-                $payload['member'],
-                static fn (mixed $item): bool => is_array($item),
+                $payload,
+                // Le filtrage garantit que les éléments de la collection sont bien des objets JSON, et écarte les autres types (ex: message d'erreur ou métadonnées inattendues).
+                static fn(mixed $item): bool => is_array($item),
             ));
 
             return $member;
         }
+        // Les collections Hydra sont encadrées d'autres métadonnées, mais contiennent une clé "member" listant les éléments de la collection.
+        if (isset($payload['member']) && is_array($payload['member'])) {
+            /** @var list<array<string, mixed>> $member */
+            $member = array_values(array_filter(
+                $payload['member'],
+                static fn(mixed $item): bool => is_array($item),
+            ));
 
+            return $member;
+        }
+        // Certaines collections Hydra utilisent la clé "hydra:member" au lieu de "member".
         if (isset($payload['hydra:member']) && is_array($payload['hydra:member'])) {
             /** @var list<array<string, mixed>> $member */
             $member = array_values(array_filter(
                 $payload['hydra:member'],
-                static fn (mixed $item): bool => is_array($item),
+                static fn(mixed $item): bool => is_array($item),
             ));
 
             return $member;

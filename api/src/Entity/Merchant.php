@@ -115,7 +115,9 @@ class Merchant extends User
 
     public function removeProduct(Product $product): self
     {
-        $this->products->removeElement($product);
+        if ($this->products->removeElement($product) && $product->getSeller() === $this) {
+            $product->assignSeller(null);
+        }
 
         return $this;
     }

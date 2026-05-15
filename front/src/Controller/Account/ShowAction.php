@@ -6,6 +6,8 @@ namespace App\Controller\Account;
 
 use App\Controller\Shared\UsesApiSessionTrait;
 use App\Exception\ApiRequestException;
+use App\HttpClient\GreenGoodies\OrderClient;
+use App\HttpClient\GreenGoodies\ProductClient;
 use App\HttpClient\GreenGoodies\UserClient;
 use App\Security\FrontAuthenticationManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * Affiche l'écran "Mon compte" à partir de l'agrégat retourné par l'API.
+ * Affiche l'écran "Mon compte" en composant plusieurs ressources de l'API.
  */
 final class ShowAction extends AbstractController
 {
@@ -23,6 +25,8 @@ final class ShowAction extends AbstractController
 
     public function __construct(
         private readonly UserClient $userClient,
+        private readonly OrderClient $orderClient,
+        private readonly ProductClient $productClient,
         private readonly FrontAuthenticationManager $frontAuthenticationManager,
     ) {
     }
@@ -38,16 +42,28 @@ final class ShowAction extends AbstractController
         }
 
         try {
-            // L'écran compte est un agrégat API : profil, commandes et état de l'accès API.
-            $account = $this->userClient->getAccount($jwt);
+            $user = $this->userClient->getCurrentUser($jwt);
+            $orders = $this->orderClient->listCurrentUserOrders($jwt);
+            $products = $this->isGranted('ROLE_MERCHANT')
+                ? $this->productClient->listCurrentUserProducts($jwt)
+                : [];
+
+            $account = [
+                'user' => $user,
+                'apiAccessEnabled' => (bool) ($user['apiAccessEnabled'] ?? false),
+                'apiKeyPrefix' => $user['apiKeyPrefix'] ?? null,
+                'orders' => $orders,
+                'products' => $products,
+            ];
         } catch (ApiRequestException $exception) {
             if ($exception->getStatusCode() === Response::HTTP_UNAUTHORIZED) {
                 return $this->redirectToLogin($request, $this->frontAuthenticationManager);
             }
 
-            // En cas d'erreur, le front garde la page visible avec un état minimal.
+            // Le front compose désormais l'écran à partir de plusieurs ressources ; en cas d'échec, il garde un état minimal.
             $this->addFlash('error', $exception->getMessage());
             $account = [
+                'user' => [],
                 'apiAccessEnabled' => false,
                 'apiKeyPrefix' => null,
                 'orders' => [],

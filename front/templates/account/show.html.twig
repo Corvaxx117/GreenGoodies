@@ -17,14 +17,20 @@
                         <div class="account-orders">
                             <div class="account-orders__head">
                                 <span>N°</span>
+                                <span>Statut</span>
                                 <span>Date</span>
                                 <span>Prix</span>
                             </div>
 
                             {% for order in account.orders %}
+                                {% set status = order.status|default('draft') %}
+                                {% set statusLabel = status == 'validated' ? 'Validée' : (status == 'cancelled' ? 'Annulée' : 'Brouillon') %}
                                 <div class="account-orders__row">
                                     <span>{{ order.reference }}</span>
-                                    <span>{{ order.validatedAt ? order.validatedAt|date('d/m/Y') : '-' }}</span>
+                                    <span>
+                                        <span class="account-orders__status account-orders__status--{{ status }}">{{ statusLabel }}</span>
+                                    </span>
+                                    <span>{{ order.createdAt ? order.createdAt|date('d/m/Y') : '-' }}</span>
                                     <span>
                                         {% if order.totalCents is divisible by(100) %}
                                             {{ (order.totalCents / 100)|number_format(0, ',', ' ') }}€
@@ -36,7 +42,7 @@
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p class="account-card__empty">Aucune commande validée pour le moment.</p>
+                        <p class="account-card__empty">Aucune commande pour le moment.</p>
                     {% endif %}
                 </section>
 
@@ -82,7 +88,9 @@
                                             </p>
 
                                             <div class="account-products__actions">
-                                                <a class="account-products__link" href="{{ path('front_product_show', { slug: product.slug }) }}">Voir le produit</a>
+                                                {% if product.isPublished %}
+                                                    <a class="account-products__link" href="{{ path('front_product_show', { slug: product.slug }) }}">Voir le produit</a>
+                                                {% endif %}
                                                 <a class="account-products__link" href="{{ path('front_product_edit', { slug: product.slug }) }}">Modifier</a>
                                             </div>
                                         </div>

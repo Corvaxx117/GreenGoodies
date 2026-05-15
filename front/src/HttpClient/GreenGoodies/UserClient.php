@@ -32,7 +32,7 @@ final class UserClient extends AbstractGreenGoodiesClient
             throw new ApiRequestException('Jeton JWT manquant dans la réponse API.', Response::HTTP_BAD_GATEWAY);
         }
 
-        $user = $this->request('GET', '/api/me', [
+        $user = $this->request('GET', '/api/users/me', [
             'headers' => $this->authenticatedHeaders($token),
         ]);
 
@@ -51,19 +51,19 @@ final class UserClient extends AbstractGreenGoodiesClient
      */
     public function register(array $payload): array
     {
-        return $this->request('POST', '/api/register', [
+        return $this->request('POST', '/api/users', [
             'json' => $payload,
         ]);
     }
 
     /**
-     * Retourne les informations du compte de l'utilisateur authentifié.
+     * Retourne les informations du profil courant.
      *
      * @return array<string, mixed>
      */
-    public function getAccount(string $jwt): array
+    public function getCurrentUser(string $jwt): array
     {
-        return $this->request('GET', '/api/account', [
+        return $this->request('GET', '/api/users/me', [
             'headers' => $this->authenticatedHeaders($jwt),
         ]);
     }
@@ -75,7 +75,7 @@ final class UserClient extends AbstractGreenGoodiesClient
      */
     public function activateApiAccess(string $jwt): array
     {
-        return $this->request('POST', '/api/me/api-key/activate', [
+        return $this->request('POST', '/api/users/me/api-key/activate', [
             'headers' => $this->authenticatedHeaders($jwt),
         ]);
     }
@@ -87,7 +87,7 @@ final class UserClient extends AbstractGreenGoodiesClient
      */
     public function deactivateApiAccess(string $jwt): array
     {
-        return $this->request('POST', '/api/me/api-key/deactivate', [
+        return $this->request('POST', '/api/users/me/api-key/deactivate', [
             'headers' => $this->authenticatedHeaders($jwt),
         ]);
     }
@@ -99,7 +99,7 @@ final class UserClient extends AbstractGreenGoodiesClient
      */
     public function deleteAccount(string $jwt): array
     {
-        return $this->request('DELETE', '/api/me', [
+        return $this->request('DELETE', '/api/users/me', [
             'headers' => $this->authenticatedHeaders($jwt),
         ]);
     }

@@ -24,9 +24,27 @@ final class ProductClient extends AbstractGreenGoodiesClient
      *
      * @return array<string, mixed>
      */
-    public function getProduct(string $slug): array
+    public function getProduct(string $slug, ?string $jwt = null): array
     {
-        return $this->request('GET', sprintf('/api/products/%s', rawurlencode($slug)));
+        $options = [];
+
+        if ($jwt !== null && $jwt !== '') {
+            $options['headers'] = $this->authenticatedHeaders($jwt);
+        }
+
+        return $this->request('GET', sprintf('/api/products/%s', rawurlencode($slug)), $options);
+    }
+
+    /**
+     * Retourne les produits du commerçant authentifié.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listCurrentUserProducts(string $jwt): array
+    {
+        return $this->unwrapCollection($this->request('GET', '/api/users/me/products', [
+            'headers' => $this->authenticatedHeaders($jwt),
+        ]));
     }
 
     /**

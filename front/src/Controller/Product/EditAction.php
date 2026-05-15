@@ -30,8 +30,16 @@ final class EditAction extends AbstractController
     #[IsGranted('ROLE_MERCHANT')]
     public function __invoke(string $slug, Request $request): Response
     {
+        $jwt = (string) $request->getSession()->get(ApiLoginAuthenticator::SESSION_JWT_KEY, '');
+
+        if ($jwt === '') {
+            $this->addFlash('error', 'Votre session a expiré. Merci de vous reconnecter.');
+
+            return $this->redirectToRoute('front_login');
+        }
+
         try {
-            $product = $this->productClient->getProduct($slug);
+            $product = $this->productClient->getProduct($slug, $jwt);
         } catch (ApiRequestException $exception) {
             $this->addFlash('error', $exception->getMessage());
 
@@ -50,14 +58,6 @@ final class EditAction extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $jwt = (string) $request->getSession()->get(ApiLoginAuthenticator::SESSION_JWT_KEY, '');
-
-            if ($jwt === '') {
-                $this->addFlash('error', 'Votre session a expiré. Merci de vous reconnecter.');
-
-                return $this->redirectToRoute('front_login');
-            }
-
             try {
                 $data = $form->getData();
 

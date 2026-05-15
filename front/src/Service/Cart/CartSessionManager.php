@@ -13,11 +13,17 @@ final class CartSessionManager
 {
     public const SESSION_KEY = 'front.cart_items';
 
+    /**  
+     * Le panier session est volontairement minimaliste et ne stocke que les slugs et quantités, sans données métier ni redondance.
+     */
     public function getQuantity(SessionInterface $session, string $slug): int
     {
         return $this->getQuantities($session)[$slug] ?? 0;
     }
 
+    /** 
+     * L'ajout, la mise à jour et la suppression d'une ligne de panier sont gérés de manière unifiée : une quantité nulle ou négative supprime la ligne.
+     */
     public function upsert(SessionInterface $session, string $slug, int $quantity): void
     {
         $items = $this->getQuantities($session);
@@ -31,17 +37,25 @@ final class CartSessionManager
         $this->storeQuantities($session, $items);
     }
 
+    /**
+     * La suppression complète du panier session est également exposée pour être utilisée après la validation de la commande.
+     */
     public function clear(SessionInterface $session): void
     {
         $session->remove(self::SESSION_KEY);
     }
 
+    /**
+     * Permet de savoir rapidement si le panier session contient des lignes sans avoir à reconstruire la vue complète.
+     */
     public function hasItems(SessionInterface $session): bool
     {
         return $this->getQuantities($session) !== [];
     }
 
     /**
+     * Construit le payload de commande à partir du panier session.
+     *
      * @return list<array{slug: string, quantity: int}>
      */
     public function toOrderPayload(SessionInterface $session): array
@@ -121,6 +135,7 @@ final class CartSessionManager
     }
 
     /**
+     * Retourne le contenu du panier session sous la forme d'un tableau slug -> quantité, en filtrant les données invalides pour éviter les erreurs et la corruption du panier.
      * @return array<string, int>
      */
     private function getQuantities(SessionInterface $session): array
@@ -149,6 +164,7 @@ final class CartSessionManager
     }
 
     /**
+     * Stocke le contenu du panier session à partir d'un tableau slug -> quantité, en filtrant les données invalides pour éviter la corruption du panier.
      * @param array<string, int> $items
      */
     private function storeQuantities(SessionInterface $session, array $items): void

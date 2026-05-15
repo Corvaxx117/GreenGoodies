@@ -54,8 +54,8 @@ final class ToggleApiAccessAction extends AbstractController
 
             $message = (string) ($response['message'] ?? ($enabled ? 'Accès API désactivé.' : 'Accès API activé.'));
 
-            if (!$enabled && isset($response['apiKey']) && is_string($response['apiKey'])) {
-                $message = sprintf('%s Clé API : %s', $message, $response['apiKey']);
+            if (!$enabled && isset($response['plainApiKey']) && is_string($response['plainApiKey'])) {
+                $message = sprintf('%s Clé API : %s', $message, $response['plainApiKey']);
             }
 
             $this->addFlash('success', $message);

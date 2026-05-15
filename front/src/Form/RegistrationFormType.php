@@ -44,7 +44,7 @@ final class RegistrationFormType extends AbstractType
                 ],
                 'constraints' => [
                     new Assert\NotBlank(),
-                    new Assert\Choice(['customer', 'merchant']),
+                    new Assert\Choice(choices: ['customer', 'merchant']),
                 ],
             ])
             ->add('password', RepeatedType::class, [

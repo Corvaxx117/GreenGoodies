@@ -11,6 +11,12 @@ framework:
     #esi: true
     #fragments: true
 
+when@dev:
+    framework:
+        http_client:
+            default_options:
+                cafile: '%env(HOME)%/.symfony5/certs/rootCA.pem'
+
 when@test:
     framework:
         test: true

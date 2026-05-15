@@ -201,13 +201,10 @@ class Product
 
     public function assignSeller(?Merchant $seller): self
     {
-        // Le rattachement vendeur sert à la fois au front et à la route commerçant filtrée par clé API.
+        // Le côté propriétaire de la relation est Product::seller : on évite ici de pousser un produit
+        // transitoire dans Merchant::products, sinon Doctrine peut le considérer comme "new entity found"
+        // lors d'un PUT avant que l'objet soit correctement managé.
         $this->seller = $seller;
-
-        if ($seller !== null && !$seller->getProducts()->contains($this)) {
-            $seller->addProduct($this);
-        }
-
         $this->touch();
 
         return $this;

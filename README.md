@@ -5,10 +5,10 @@ Architecture monorepo Symfony 8 avec deux applications :
 - `front/` : application Twig/HTML sans Doctrine, qui consomme l'API REST et conserve le JWT en session Symfony
 - `api/` : API REST Symfony 8 avec API Platform, Doctrine, JWT et route commerçant protégée par clé API
 
-Ports locaux utilisés :
+Ports locaux utilisés avec Symfony CLI :
 
-- `http://127.0.0.1:8000` pour le front
-- `http://127.0.0.1:8001` pour l'API
+- `https://127.0.0.1:8000` pour le front
+- `https://127.0.0.1:8001` pour l'API
 
 Comptes de fixtures API :
 

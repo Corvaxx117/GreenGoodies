@@ -30,7 +30,7 @@ final class FrontUser implements UserInterface, EquatableInterface
      */
     public static function fromApiPayload(array $payload): self
     {
-        // Le front reconstruit son utilisateur à partir du payload minimal exposé par /api/me.
+        // Le front reconstruit son utilisateur à partir du payload minimal exposé par /api/users/me.
         return new self(
             (int) $payload['id'],
             (string) $payload['email'],

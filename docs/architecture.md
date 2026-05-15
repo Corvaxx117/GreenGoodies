@@ -1,9 +1,10 @@
 # Architecture GreenGoodies
 
-Ce document regroupe :
+Ce document présente l'architecture actuelle du projet :
 
-- un diagramme de classe représentant la base de données de l'API ;
-- un schéma d'architecture pour expliquer le fonctionnement global du projet.
+- le modèle de données réellement utilisé côté API ;
+- le fonctionnement global entre le front Symfony et l'API REST ;
+- les principaux flux métier à connaître pour expliquer l'application.
 
 ## Diagramme de classe de la base de données
 
@@ -18,8 +19,13 @@ class User {
   +password : string
   +firstName : string
   +lastName : string
-  +apiAccessEnabled : bool
   +termsAcceptedAt : datetime?
+  +createdAt : datetime
+  +updatedAt : datetime
+}
+
+class Merchant {
+  +apiAccessEnabled : bool
 }
 
 class ApiKey {
@@ -30,20 +36,18 @@ class ApiKey {
   +lastUsedAt : datetime?
 }
 
-class Brand {
-  +id : int
-  +name : string
-}
-
 class Product {
   +id : int
   +slug : string
+  +brand : string
   +name : string
   +shortDescription : string
   +description : text
   +priceCents : int
   +imagePath : string
   +isPublished : bool
+  +createdAt : datetime
+  +updatedAt : datetime
 }
 
 class CustomerOrder {
@@ -52,6 +56,8 @@ class CustomerOrder {
   +status : OrderStatus
   +totalCents : int
   +validatedAt : datetime?
+  +createdAt : datetime
+  +updatedAt : datetime
 }
 
 class OrderItem {
@@ -60,79 +66,130 @@ class OrderItem {
   +unitPriceCents : int
   +quantity : int
   +lineTotalCents : int
+  +createdAt : datetime
+  +updatedAt : datetime
 }
 
-User "1" --> "0..1" ApiKey : owns
-User "1" --> "0..*" Product : sells
+Merchant --|> User
+Merchant "1" --> "0..1" ApiKey : owns
+Merchant "1" --> "0..*" Product : sells
 User "1" --> "0..*" CustomerOrder : places
-Brand "1" --> "0..*" Product : references
 CustomerOrder "1" --> "0..*" OrderItem : contains
 Product "0..1" --> "0..*" OrderItem : source product
 ```
 
 ### Points clés du modèle de données
 
-- `User` représente un compte client pouvant aussi devenir vendeur et activer un accès API commerçant.
-- `ApiKey` est liée en `1-1` à `User` et ne stocke jamais la clé en clair : seul le hash est conservé.
-- `Product` appartient à une `Brand` et peut être rattaché à un vendeur (`seller`) si le produit a été créé par un utilisateur.
-- `CustomerOrder` sert à la fois de panier et de commande validée.
-- `OrderItem` stocke un snapshot du produit au moment de l'achat (`productName`, `unitPriceCents`) pour préserver l'historique.
-- Toutes les entités principales utilisent aussi `createdAt` et `updatedAt` via `TimestampableTrait`.
+- `User` représente le socle commun des comptes applicatifs : identité, mot de passe, rôles, acceptation des CGU, timestamps.
+- `Merchant` étend `User` avec l'héritage Doctrine `SINGLE_TABLE` et un discriminator `account_type`. Un commerçant est donc un utilisateur spécialisé, pas une table séparée.
+- `ApiKey` est liée en `1-1` à `Merchant`. La clé n'est jamais conservée en clair : seul son hash est persisté, avec un préfixe lisible et une date de dernière utilisation.
+- `Product` porte directement sa marque via `brand`. Il peut être public (`isPublished = true`) et/ou rattaché à un commerçant via `seller`.
+- `CustomerOrder` est une commande persistée. Le modèle supporte plusieurs statuts (`draft`, `validated`, `cancelled`), même si le front crée aujourd'hui directement des commandes validées au checkout.
+- `OrderItem` stocke un snapshot du produit acheté (`productName`, `unitPriceCents`) pour préserver l'historique même si le produit évolue ensuite.
+- Toutes les entités métier principales réutilisent `TimestampableTrait` pour `createdAt` et `updatedAt`.
 
 ## Schéma de fonctionnement du projet
 
 ```mermaid
 flowchart LR
-    U[Utilisateur front]
-    P[Partenaire / script externe]
+    U[Utilisateur]
+    P[Partenaire externe]
 
     subgraph FRONT[Application front Symfony]
-        TWIG[Controllers + Twig + FormType]
-        SESSION[Session Symfony<br/>stockage du JWT]
-        CLIENT[GreenGoodiesApiClient]
+        TWIG[Controllers + Twig]
+        FORM[FormType + Validator]
+        SESSION[Session Symfony<br/>JWT + panier]
+        CART[CartSessionManager]
+        HTTP[Clients HTTP GreenGoodies]
         AUTH[ApiLoginAuthenticator]
     end
 
     subgraph API[Application API Symfony + API Platform]
-        LOGIN[/Route /auth JWT/]
-        RES[ApiResource + Providers + Processors]
+        LOGIN[/POST /auth/]
+        RES[ApiResource]
+        STATE[Providers + Processors]
         SEC[Security JWT + MerchantApiKeyAuthenticator]
+        ORM[Doctrine ORM]
         DOC[Swagger / OpenAPI]
     end
 
-    DB[(MySQL green_goodies)]
+    DB[(MySQL)]
 
     U -->|navigation HTML| TWIG
-    TWIG -->|connexion| AUTH
+    TWIG --> FORM
+    FORM --> AUTH
     AUTH -->|POST /auth| LOGIN
     LOGIN --> SEC
-    SEC --> DB
+    SEC --> ORM
+    ORM --> DB
     LOGIN -->|JWT| AUTH
-    AUTH -->|stocke le JWT| SESSION
+    AUTH -->|stockage session| SESSION
 
-    TWIG --> CLIENT
-    CLIENT -->|Bearer JWT| RES
-    RES --> SEC
-    SEC --> DB
-    RES -->|JSON| CLIENT
-    CLIENT -->|données prêtes à afficher| TWIG
+    TWIG --> CART
+    CART --> SESSION
 
-    P -->|GET /api/merchant/products<br/>X-API-Key| SEC
-    SEC -->|valide la clé API| DB
-    SEC --> RES
-    RES -->|liste des produits du propriétaire| P
+    TWIG --> HTTP
+    HTTP -->|Bearer JWT ou requêtes publiques| RES
+    RES --> STATE
+    STATE --> SEC
+    SEC --> ORM
+    ORM --> DB
+    RES -->|JSON| HTTP
+    HTTP -->|données prêtes à afficher| TWIG
+
+    P -->|GET /api/products/mine<br/>X-API-Key| SEC
+    SEC --> ORM
+    ORM --> DB
+    SEC --> STATE
+    STATE --> RES
+    RES -->|JSON produits publiés du commerçant| P
 
     DOC --> RES
 ```
 
 ### Lecture du schéma
 
-- Le `front/` ne parle jamais directement à la base.
-- Toute la donnée métier transite par `api/`.
-- La connexion utilisateur se fait contre l'API via `/auth`, puis le JWT est conservé en session côté front.
-- Les actions authentifiées du front utilisent ensuite ce JWT pour appeler l'API.
-- Les routes commerçant utilisent un second mode d'authentification, indépendant du JWT, via `X-API-Key`.
-- Swagger documente l'API, mais l'exécution métier est portée par API Platform, Doctrine et la couche de sécurité Symfony.
+- Le `front/` ne parle jamais directement à la base de données.
+- Le `front/` gère l'affichage, les formulaires Symfony, la session et la sécurité locale.
+- L'`api/` centralise la logique métier, la persistance Doctrine et l'exposition REST des ressources.
+- Le JWT obtenu via `/auth` est stocké en session côté front pour les appels ultérieurs vers les routes protégées.
+- Le panier n'est plus géré par l'API : il est stocké côté front en session sous la forme minimale `slug => quantité`.
+- L'écran `Mon compte` est composé à partir de plusieurs ressources REST ciblées (`/api/users/me`, `/api/users/me/orders`, `/api/users/me/products`) au lieu d'une vue API agrégée dédiée.
+- L'accès partenaire utilise une authentification séparée par clé API `X-API-Key` sur `/api/products/mine`, indépendante du JWT front.
+
+## Routes métier principales
+
+### Front
+
+- `GET /` : page d'accueil avec catalogue.
+- `GET /produits/{slug}` : fiche produit.
+- `GET|POST /connexion` : formulaire de connexion front.
+- `GET|POST /inscription` : formulaire d'inscription.
+- `GET /mon-panier` : affichage du panier session.
+- `POST /mon-panier/articles/{slug}` : ajout, mise à jour ou suppression d'une ligne de panier.
+- `POST /mon-panier/vider` : vidage du panier.
+- `POST /mon-panier/valider` : création d'une commande côté API.
+- `GET /mon-compte` : écran compte composé depuis plusieurs ressources API.
+- `POST /mon-compte/acces-api` : activation ou désactivation de la clé API commerçant.
+- `POST /mon-compte/supprimer` : suppression du compte courant.
+- `GET|POST /mes-produits/nouveau` et `GET|POST /mes-produits/{slug}/modifier` : gestion produit côté commerçant.
+
+### API
+
+- `POST /auth` : obtention d'un JWT.
+- `POST /api/users` : création d'un compte.
+- `GET /api/users/me` : profil courant.
+- `DELETE /api/users/me` : suppression du compte courant.
+- `POST /api/users/me/api-key/activate` : activation ou régénération de la clé API.
+- `POST /api/users/me/api-key/deactivate` : désactivation de la clé API.
+- `GET /api/products` : catalogue public.
+- `GET /api/products/{slug}` : détail d'un produit publié, ou produit privé du commerçant propriétaire.
+- `GET /api/users/me/products` : produits du commerçant connecté côté front.
+- `GET /api/products/mine` : produits publiés du commerçant authentifié par clé API.
+- `POST /api/products` et `PUT /api/products/{slug}` : création et modification produit.
+- `GET /api/users/me/orders` : historique des commandes du compte courant.
+- `GET /api/orders/{reference}` : détail d'une commande appartenant à l'utilisateur connecté.
+- `POST /api/orders` : création d'une commande validée à partir du panier session du front.
 
 ## Flux principaux à retenir
 
@@ -140,34 +197,62 @@ flowchart LR
 
 - Le navigateur appelle le front.
 - Le front appelle `GET /api/products`.
-- L'API lit la base puis retourne le JSON.
-- Le front rend la page Twig.
+- L'API retourne les produits publiés.
+- Le front rend la page Twig d'accueil.
 
 ### 2. Connexion utilisateur
 
-- L'utilisateur soumet le formulaire sur le front.
-- Le custom authenticator du front appelle `POST /auth`.
+- L'utilisateur soumet le formulaire de connexion du front.
+- `ApiLoginAuthenticator` appelle `POST /auth`.
 - L'API retourne un JWT.
-- Le front stocke ce JWT en session puis utilise `GET /api/me` pour hydrater l'utilisateur connecté.
+- Le front appelle ensuite `GET /api/users/me` pour reconstruire l'utilisateur Symfony local.
+- Le JWT est conservé en session pour les prochains appels API.
 
-### 3. Ajout d'un produit
+### 3. Inscription
 
-- Le formulaire Symfony est affiché par le front.
-- Le front soumet les données à l'API avec le JWT.
-- API Platform désérialise `Product`, puis [ProductProcessor](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/ApiState/ProductProcessor.php) complète les règles métier.
-- Doctrine persiste le produit en base.
+- Le front valide le formulaire Symfony localement.
+- Il transmet ensuite les données à `POST /api/users`.
+- `RegisterUserProcessor` crée soit un `User`, soit un `Merchant` selon `accountType`.
 
-### 4. Gestion du panier
+### 4. Gestion du panier et commande
 
-- Le front appelle `/api/cart`, `/api/cart/items/{slug}`, `/api/cart/clear` ou `/api/cart/checkout`.
-- Les processors/providers de panier s'appuient sur [CartManager](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/Service/CartManager.php).
-- Le panier correspond à une `CustomerOrder` en statut `draft`.
-- Lors du checkout, le statut passe à `validated`.
+- Le panier est stocké côté front en session via `CartSessionManager`.
+- Seuls les couples `slug` / `quantité` sont conservés localement.
+- L'affichage du panier réutilise `GET /api/products` pour enrichir les lignes avec les données produit.
+- Au checkout, le front transforme la session en payload et appelle `POST /api/orders`.
+- `CreateOrderProcessor` crée une `CustomerOrder`, ajoute les `OrderItem`, valide la commande et la persiste.
 
-### 5. Accès API commerçant
+### 5. Espace compte
 
-- L'utilisateur active sa clé API depuis son compte.
-- L'API génère une clé en clair une seule fois et n'en conserve que le hash.
-- Un partenaire externe appelle `/api/merchant/products` avec `X-API-Key`.
-- [MerchantApiKeyAuthenticator](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/Security/MerchantApiKeyAuthenticator.php) authentifie le propriétaire de la clé.
-- [MerchantProductsProvider](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/ApiState/MerchantProductsProvider.php) retourne uniquement ses produits.
+- Le front appelle `GET /api/users/me` pour le profil.
+- Il appelle `GET /api/users/me/orders` pour l'historique des commandes.
+- Si l'utilisateur connecté est commerçant, il appelle aussi `GET /api/users/me/products`.
+- Le front compose ensuite l'écran `Mon compte` à partir de ces trois ressources.
+
+### 6. Gestion des produits commerçant
+
+- Le formulaire front envoie les données à `POST /api/products` ou `PUT /api/products/{slug}`.
+- `ProductProcessor` vérifie que l'utilisateur connecté est un `Merchant`.
+- Le processor rattache automatiquement le produit à son vendeur et génère un slug si nécessaire.
+
+### 7. Accès API commerçant
+
+- Le commerçant active son accès API depuis son compte avec `POST /api/users/me/api-key/activate`.
+- L'API génère une clé en clair une seule fois, puis ne conserve que son hash.
+- Un partenaire externe appelle `GET /api/products/mine` avec `X-API-Key`.
+- `MerchantApiKeyAuthenticator` retrouve le commerçant propriétaire, vérifie que la clé est active et journalise sa dernière utilisation.
+- `MerchantProductsProvider` retourne uniquement les produits publiés appartenant à ce commerçant.
+
+## Fichiers de référence utiles
+
+- [README.md](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/README.md)
+- [front/src/Security/ApiLoginAuthenticator.php](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/front/src/Security/ApiLoginAuthenticator.php)
+- [front/src/Service/Cart/CartSessionManager.php](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/front/src/Service/Cart/CartSessionManager.php)
+- [front/src/Controller/Account/ShowAction.php](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/front/src/Controller/Account/ShowAction.php)
+- [api/src/Entity/User.php](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/Entity/User.php)
+- [api/src/Entity/Merchant.php](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/Entity/Merchant.php)
+- [api/src/Entity/Product.php](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/Entity/Product.php)
+- [api/src/Entity/CustomerOrder.php](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/Entity/CustomerOrder.php)
+- [api/src/ApiState/Product/ProductProcessor.php](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/ApiState/Product/ProductProcessor.php)
+- [api/src/ApiState/Order/CreateOrderProcessor.php](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/ApiState/Order/CreateOrderProcessor.php)
+- [api/src/Security/MerchantApiKeyAuthenticator.php](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/api/src/Security/MerchantApiKeyAuthenticator.php)
