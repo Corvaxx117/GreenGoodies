@@ -17,4 +17,4 @@ Comptes de fixtures API :
 
 Documentation :
 
-- [Architecture et diagrammes](/Users/Julien/Documents/Sites/Developpeur/FORMATION_OCR/GreenGoodies/docs/architecture.md)
+- [Architecture et diagrammes](docs/architecture.md)
